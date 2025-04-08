@@ -1,0 +1,20 @@
+dimpleflow:
+  processing_data_directory: "/path/to/processing_data"
+  models_directory: "models"
+  reference_pdb: "reference.pdb"
+  filtered_xray_csv: "/path/to/filtered_xray.csv"
+
+ligandflow:
+  root_dir: "/data"
+  models_path: "models"
+  ligands: "ligands.csv"
+
+gather_xray_data:
+  data_directory: "/path/to/xray_data"
+  sample_name: "sample123"
+
+refineflow:
+  export_data_directory: "/path/to/export"
+  ligand_csv: "/path/to/ligands.csv"
+  basename: "ensemble-model"
+  basename_hkl: "pandda-input"
