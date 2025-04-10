@@ -33,9 +33,9 @@ for index, row in jobs_df.iterrows():
         {
             "hklout": f"{row['xtal_id']}.dimple.mtz",
             "xyzout": f"{row['xtal_id']}.dimple.pdb",
-            "xyzin": reference_model,
+            "xyzin": REFERENCE_PDB,
             "hklin": row["filepath"],
-            "sample_dir": str(models_dir / Path(f"{row['xtal_id']}")),
+            "sample_dir": str(Path(MODELS_DIRECTORY) / Path(f"{row['xtal_id']}")),
             "xtal_id": row["xtal_id"],
         }
     )
@@ -49,7 +49,7 @@ def run_dimple(dimple_params: dict):
     print(cmd)
     dimple_process = subprocess.Popen(
         cmd.split(),
-        cwd=models_dir,
+        cwd=MODELS_DIRECTORY,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
