@@ -21,8 +21,11 @@ Edit SAMPLE_NAME to include unique sample id in master.h5 filename
 for including in the dataset
 """
 
-DATA_DIRECTORY = ""
-SAMPLE_NAME = ""
+with open("config.yaml","r") as yaml_file:
+    config = yaml.safe_load(yaml_file)
+
+DATA_DIRECTORY = config['gather_xray_data']['data_directory']
+SAMPLE_NAME = config['gather_xray_data']['sample_name']
 
 df = pandas.DataFrame()
 find_cmd = ["find", f"{DATA_DIRECTORY}", "-maxdepth", "4", "-name", "*summary.csv"]
@@ -44,7 +47,7 @@ df["pipeline"][df["pipeline"] == "autoPROC"] = "autoProc"
 # add xtal_id
 df["xtal_id"] = ""
 for index, row in df.iterrows():
-    df.at[index, "xtal_id"] = row["Sample_Path"].split("/")[0]
+    df.at[index, "xtal_id"] = row["Sample_Path"]
 
 df_filtered = df[df["xtal_id"].str.contains(f"{SAMPLE_NAME}")]
 final_df = df_filtered.groupby("xtal_id").apply(
@@ -57,9 +60,6 @@ find_cmd = [
     f"{DATA_DIRECTORY}",
     "-name",
     "truncate-unique.mtz",
-    "-o",
-    "-name",
-    "fast_dp.mtz",
 ]
 reflection_files = subprocess.check_output(
     find_cmd, universal_newlines=True
@@ -71,7 +71,7 @@ print(reflection_files)
 final_df["filepath"] = ""
 for index, row in final_df.iterrows():
     for f in reflection_files:
-        if (row["Sample_Path"] in f) and (row["pipeline"] in f):
+        if (row["Sample_Path"] in f):
             final_df.at[index, "filepath"] = f
 
 print(final_df)

@@ -17,25 +17,17 @@ from pathlib import Path
 import pandas
 import multiprocessing
 
-"""
-INSTRUCTIONS:
-Make a processing directory, e.g. processing-dir
-within processing directory add
--reference pdb model
--a subdirectory for dimple outputs, e.g. models
--filtered csv file from gather script
-"""
+with open("config.yaml","r") as yaml_file:
+    config = yaml.safe_load(yaml_file)
 
-PROCESSING_DATA_DIRECTORY=""
-MODELS_DIRECTORY="models"
-REFERENCE_PDB = "reference.pdb"
-FILTERED_XRAY_CSV = ""
+DATA_DIRECTORY = config['gather_xray_data']['data_directory']
+SAMPLE_NAME = config['gather_xray_data']['sample_name']
+PROCESSING_DATA_DIRECTORY = ['dimpleflow']['processing_data_directory']
+MODELS_DIRECTORY = ['dimpleflow']['models_directory']
+REFERENCE_PDB = ['dimpleflow']['reference_pdb']
+FILTERED_XRAY_CSV = ['dimpleflow']['filtered_xray_csv']
 
-root_dir = Path(f"{PROCESSING_DATA_DIRECTORY}")
-models_dir = root_dir / Path(f"{MODELS_DIRECTORY}")
-reference_model = str(root_dir / Path(f"{REFERENCE_PDB}"))
-jobs_csv = root_dir / Path(f"{FILTERED_XRAY_CSV}")
-jobs_df = pandas.read_csv(jobs_csv)
+jobs_df = pandas.read_csv(FILTERED_XRAY_CSV)
 jobs_list = []
 
 for index, row in jobs_df.iterrows():
@@ -56,6 +48,7 @@ def run_dimple(dimple_params: dict):
     cmd = "dimple --hklout {hklout} --xyzout {xyzout} {xyzin} {hklin} {sample_dir}".format(
         **dimple_params
     )
+    print(cmd)
     dimple_process = subprocess.Popen(
         cmd.split(),
         cwd=models_dir,

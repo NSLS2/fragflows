@@ -17,14 +17,16 @@ from prefect.task_runners import ConcurrentTaskRunner
 from pathlib import Path
 from time import sleep
 
-root_dir = Path("/data")
-models_path = root_dir / Path("models")
-ligands = root_dir / Path("ligands.csv")
+with open("config.yaml","r") as yaml_file:
+    config = yaml.safe_load(yaml_file)
+
+MODELS_DIRECTORY = config['ligandflow']['models_directory']
+LIGAND_CSV = config['ligandflow']['ligand_csv']
 
 
 @task(name="locate_models_dir", tags="acedrg_job")
 def find_sample_path(sample_dict: dict):
-    for r, d, f in os.walk(models_path):
+    for r, d, f in os.walk(MODELS_DIRECTORY):
         for d_ in d:
             if sample_dict["xtal_id"] == d_:
                 return Path(r, d_)  # sample_dir
@@ -83,7 +85,7 @@ def acedrg_flow(samples: list, **kwargs):
 
 
 if __name__ == "__main__":
-    with open(ligands, "r") as f:
+    with open(LIGAND_CSV, "r") as f:
         reader = csv.DictReader(f)
         samples = [row for row in reader]
 

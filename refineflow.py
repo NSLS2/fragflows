@@ -18,20 +18,14 @@ import pandas
 import multiprocessing
 import shlex
 
-"""
-INSTRUCTIONS:
-Make a processing directory, e.g. processing-dir
-within processing directory add
--reference pdb model
--a subdirectory for dimple outputs, e.g. models
--filtered csv file from gather script
-"""
+with open("config.yaml","r") as yaml_file:
+    config = yaml.safe_load(yaml_file)
 
-EXPORT_DATA_DIRECTORY = ""
-ligand_csv = ""
+EXPORT_DATA_DIRECTORY = config['refineflow']['export_data_directory']
+LIGAND_CSV = config['refineflow']['ligand_csv']
 ligand_df = pandas.read_csv(ligand_csv)
-basename = "ensemble-model"
-basename_hkl = "pandda-input"
+BASENAME = config['refineflow']['basename']
+BASENAME_HKL = config['refineflow']['basename_hkl']
 
 jobs_list = []
 
@@ -44,9 +38,9 @@ for d in os.listdir(EXPORT_DATA_DIRECTORY):
         ligand = None
 
     job_dict = {
-            "xyzin": f"{d}-{basename}.pdb",
-            "hklin": f"{d}-{basename_hkl}.mtz",
-            "restraints": f"{d}-{basename}.restraints-phenix.params",
+            "xyzin": f"{d}-{BASENAME}.pdb",
+            "hklin": f"{d}-{BASENAME_HKL}.mtz",
+            "restraints": f"{d}-{BASENAME}.restraints-phenix.params",
             "ligand": None,
             "sample_dir": str(Path(EXPORT_DATA_DIRECTORY) / Path(d)),
         }
