@@ -6,8 +6,8 @@ dimpleflow:
 
 ligandflow:
   root_dir: "/data"
-  models_path: "models"
-  ligands: "ligands.csv"
+  models_directory: "models"
+  ligand_csv: "ligands.csv"
 
 gather_xray_data:
   data_directory: "/path/to/xray_data"
