@@ -6,17 +6,15 @@ This is a temporary script file.
 """
 
 import os
-import tempfile
 import subprocess
-import shutil
 import csv
-import asyncio
 from prefect import task, flow
 from prefect.task_runners import ConcurrentTaskRunner
 from pathlib import Path
 import pandas
 import multiprocessing
 import shlex
+import yaml
 
 with open("config.yaml","r") as yaml_file:
     config = yaml.safe_load(yaml_file)

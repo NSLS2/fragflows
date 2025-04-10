@@ -10,16 +10,7 @@ import os
 import pandas
 import subprocess
 import datetime
-
-"""
-INSTRUCTIONS:
-
-Edit DATA_DIRECTORY to include path to xray data, e.g.
-/nsls2/data/amx/proposals/2023-3/pass-313937/313937-20231105-dtime
-
-Edit SAMPLE_NAME to include unique sample id in master.h5 filename
-for including in the dataset
-"""
+import yaml
 
 with open("config.yaml","r") as yaml_file:
     config = yaml.safe_load(yaml_file)

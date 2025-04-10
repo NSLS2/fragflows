@@ -7,15 +7,12 @@ Created on Tue Apr 18 14:13:19 2023
 """
 
 import os
-import tempfile
 import subprocess
-import shutil
 import csv
-import asyncio
 from prefect import task, flow
 from prefect.task_runners import ConcurrentTaskRunner
 from pathlib import Path
-from time import sleep
+import yaml
 
 with open("config.yaml","r") as yaml_file:
     config = yaml.safe_load(yaml_file)
