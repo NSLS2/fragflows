@@ -38,7 +38,7 @@ df["pipeline"][df["pipeline"] == "autoPROC"] = "autoProc"
 # add xtal_id
 df["xtal_id"] = ""
 for index, row in df.iterrows():
-    df.at[index, "xtal_id"] = row["Sample_Path"]
+    df.at[index, "xtal_id"] = row["Sample_Path"].split("/")[0]
 
 df_filtered = df[df["xtal_id"].str.contains(f"{SAMPLE_NAME}")]
 final_df = df_filtered.groupby("xtal_id").apply(
