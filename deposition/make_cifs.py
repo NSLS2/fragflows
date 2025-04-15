@@ -36,7 +36,7 @@ def make_changed_state_sf_cif(
     except KeyError as e:
         print(f'caught {e}: missing refinement reflection cif for {xtal_id}')
     refinement_block = refinement_cif_to_cif_block(REFINEMENT_SF_CIF)
-    rblock = gemmi.as_refln_blocks(gemmi.cif.read_file(REFINEMENT_SF_CIF))[0]
+    #rblock = gemmi.as_refln_blocks(gemmi.cif.read_file(REFINEMENT_SF_CIF))[0]
     
     # original intensity measurements
     REFLECTION_DATA = table1.loc[table1['xtal_id'] == xtal_id, 'reflection_data_file'].iloc[0]
@@ -64,11 +64,12 @@ def make_changed_state_sf_cif(
     high_res = gemmi.read_mtz_file(REFLECTION_DATA).resolution_high()
     for idx, row in table2[table2['xtal_id'] == xtal_id].iterrows():
         EVENT_MAP = row['event_map_file']
-        xtal_uid = row['uid']
-        catalog_id = table1.loc[table1['xtal_id'] == xtal_id, 'catalog_id'].iloc[0]
+        #xtal_uid = row['uid']
+        #catalog_id = table1.loc[table1['xtal_id'] == xtal_id, 'catalog_id'].iloc[0]
         x, y, z = row['x'], row['y'], row['z']
+        event_background_density_correction = row['1-BDC']
         
-        diffrn_details = f'crystal_id={xtal_id};crystal_uid={xtal_uid};soaked={catalog_id};event_site=({x},{y},{z})'
+        diffrn_details = f'ligand evidence PanDDA event map;1-BDC=({event_background_density_correction});event_site=({x},{y},{z})'
         event_map_block = event_map_to_cif_block(
             EVENT_MAP,
             high_res=high_res,

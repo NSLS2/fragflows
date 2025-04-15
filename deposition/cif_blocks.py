@@ -42,9 +42,75 @@ def populate_minimal_block_pairs(
     
     return
 
+def insert_pair_into_cif_block(block: gemmi.cif.Block, pair_key: str, *args):
+    """
+    Inserts new key-value pairs into a CIF block after a specified category.
+
+    Traverses the CIF block and inserts one or more key-value
+    pairs immediately after the category specified by
+    `pair_key`. It preserves the order of the original items and avoids
+    overwriting existing keys. Outputs a copy of the CIF block with inserted values.
+
+    Parameters:
+        block (gemmi.cif.Block): The original CIF block to modify.
+        pair_key (str): The category name (e.g., "struct") after which the new pairs will be inserted.
+        *args (tuple): One or more key-value tuples representing the new pairs to insert,
+                       e.g., ("_struct.title", "My Title").
+
+    Returns:
+        gemmi.cif.Block: A new CIF block with the inserted key-value pairs.
+
+    Raises:
+        ValueError: If any of the new keys already exist in the block, or
+                    if the specified `pair_key` category is not found, or
+                    if CIF formatting errors (e.g., multiple categories in a loop) are detected.
+    """
+    existing_tags = {
+        tag
+        for category in block.get_mmcif_category_names()
+        for tag in block.find_mmcif_category(category).tags
+    }
+    incoming_keys = {arg[0] for arg in args}
+    if incoming_keys & existing_tags:
+        raise ValueError("Attempting to overwrite existing key-value pair.")
+    if pair_key not in [s.split('.')[0] for s in list(existing_tags)]:
+        raise ValueError("Attempting to insert after non-existent key")
+    
+    new_block = gemmi.cif.Block(block.name)
+
+
+    def get_item_category(item):
+        if item.pair:
+            return item.pair[0].split('.')[0]
+        elif item.loop:
+            tags = set(s.split('.')[0] for s in item.loop.tags)
+            if len(tags) != 1:
+                raise ValueError("Error in CIF loop table formatting: found multiple category keys.")
+            return tags.pop()
+        else:
+            raise ValueError("Found CIF item that is neither pair nor loop")
+
+    previous_category = get_item_category(block[0])
+    new_block.add_item(block[0])
+
+    for b in list(block)[1:]:
+        current_category = get_item_category(b)
+
+        if current_category != previous_category:
+            if previous_category == pair_key:
+                for arg in args:
+                    new_block.set_pair(*arg)
+            previous_category = current_category
+
+        new_block.add_item(b)
+
+    return new_block
+
+
 def refinement_cif_to_cif_block(
     refinement_cif_path: str,
-    block_name: str='xxxxsf'
+    block_name: str='xxxxsf',
+    details: str="data from final ensemble refinement with ligand"
 )->gemmi.cif.Block:
     
     try:
@@ -53,7 +119,8 @@ def refinement_cif_to_cif_block(
     except RuntimeError as e:
         print(f'Caught RuntimeError: {e}')
     block.name = block_name
-    return block
+    refinement_block = insert_pair_into_cif_block(block, '_cell', ('_diffrn.id','1'),('_diffrn.crystal_id','1'),('_diffrn.details',f'"{details}"'))
+    return refinement_block
 
 def event_map_to_cif_block(
     map_path: str,
@@ -65,7 +132,7 @@ def event_map_to_cif_block(
     
     #read map
     ccp4map = gemmi.read_ccp4_map(map_path, setup=True)
-    ccp4map.grid.spacegroup = gemmi.SpaceGroup("P1")
+    ccp4map.grid.spacegroup = gemmi.SpaceGroup("P 1")
     ccp4map.update_ccp4_header()
     
     # inverse FFT
