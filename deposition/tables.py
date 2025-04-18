@@ -2,6 +2,10 @@ import pandas as pd
 import os
 import uuid
 from pathlib import Path
+from validation.statistics import *
+from deposition.structure import make_structure_from_block_wrapper
+import numpy as np
+import traceback
 
 def generate_refinement_table(
     export_dir: str,
@@ -86,3 +90,55 @@ def generate_event_table(
 
     df = pd.DataFrame(result_list)
     return df
+
+def generate_refinement_validation_table(
+    refinement_table_csv: str,
+    event_table_csv: str,
+    basename: str='ensemble',
+    ligand_name: str='UNL'
+):
+    refinement_df = pd.read_csv(refinement_table_csv)
+    event_df = pd.read_csv(event_table_csv)
+
+    result_list = []
+    for _,row in refinement_df.iterrows():
+        try:
+            structure_doc = gemmi.cif.read_file(row['refined_structure_file'])
+            structure_block = [block for block in structure_doc if basename in block.name][0]
+            st = make_structure_from_block_wrapper(structure_block)
+            rblock = gemmi.as_refln_blocks(gemmi.cif.read(row['refined_reflection_file']))[0]
+            for model in st:
+                for chain in model:
+                    for residue in chain:
+                        if residue.name == ligand_name:
+                            real_space_mean, real_space_var,real_space_cc = real_space_map_stats(
+                                st,
+                                rblock,
+                                residue
+                            )
+                            lig_coords = np.mean(np.array([[atom.pos.x,atom.pos.y,atom.pos.z] for atom in residue]), axis=0)
+                            events = event_df[event_df['xtal_id'] == row['xtal_id']]
+                            event_coords = events[['x','y','z']].values
+                            event_distances = np.linalg.norm(event_coords - lig_coords, axis=1)
+                            nearest_event_no_pbc = events.iloc[event_distances.argmin()]['uid']
+
+                            result_dict = {
+                                'uid': str(uuid.uuid4()),
+                                'xtal_uid': row['uid'],
+                                'xtal_id': row['xtal_id'],
+                                'chain_id': chain.name,
+                                'residue_name': residue.name,
+                                'seqid': residue.seqid,
+                                'real_space_mean': real_space_mean,
+                                'real_space_var': real_space_var,
+                                'real_space_cc': real_space_cc,
+                                'diff_z_score': real_space_diff_zscore(st, rblock, residue),
+                                'lig_prot_b_iso_ratio': lig_prot_b_iso_ratio(st, residue),
+                                'nearest_event_no_pbc': nearest_event_no_pbc,
+                                'dist_to_nearest_event': np.min(event_distances),
+                            }
+                            result_list.append(result_dict)
+        except Exception as e:
+            print(f"Caught exception {e} for {row['xtal_id']}")
+            traceback.print_exc()
+    return pd.DataFrame(result_list)
