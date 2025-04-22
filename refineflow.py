@@ -15,15 +15,19 @@ import pandas
 import multiprocessing
 import shlex
 import yaml
+from datetime import datetime
+import gemmi
+import time
 
 with open("config.yaml","r") as yaml_file:
     config = yaml.safe_load(yaml_file)
 
 EXPORT_DATA_DIRECTORY = config['refineflow']['export_data_directory']
 LIGAND_CSV = config['refineflow']['ligand_csv']
-ligand_df = pandas.read_csv(ligand_csv)
+ligand_df = pandas.read_csv(LIGAND_CSV)
 BASENAME = config['refineflow']['basename']
 BASENAME_HKL = config['refineflow']['basename_hkl']
+REFINEMENT_PROGRAM = config['refineflow']['refinement_program']
 
 jobs_list = []
 
@@ -37,8 +41,11 @@ for d in os.listdir(EXPORT_DATA_DIRECTORY):
 
     job_dict = {
             "xyzin": f"{d}-{BASENAME}.pdb",
+            "xyzout": f"{d}-{BASENAME}_refine",
             "hklin": f"{d}-{BASENAME_HKL}.mtz",
-            "restraints": f"{d}-{BASENAME}.restraints-phenix.params",
+            "hklout": f"{d}-{BASENAME}_refine.mtz",
+            "hklout_cif": f"{d}-{BASENAME}_refine.reflections.cif",
+            "restraints": f"{d}-{BASENAME}.restraints-{REFINEMENT_PROGRAM}.params",
             "ligand": None,
             "sample_dir": str(Path(EXPORT_DATA_DIRECTORY) / Path(d)),
         }
@@ -50,7 +57,7 @@ for d in os.listdir(EXPORT_DATA_DIRECTORY):
 
 @task(name="run_phenix", tags=["phenix_job"])
 def run_phenix(phenix_params: dict):
-    cmd = 'phenix.refine {xyzin} {hklin} {ligand} write_reflection_cif_file=True strategy="*individual_sites *individual_adp *occupancies" --overwrite'.format(
+    cmd = 'phenix.refine {xyzin} {hklin} {ligand} {restraints} write_reflection_cif_file=True strategy="*individual_sites *individual_adp *occupancies" --overwrite'.format(
         **phenix_params
     )
     print(f"running: {cmd}\nin {phenix_params['sample_dir']}")
@@ -62,11 +69,54 @@ def run_phenix(phenix_params: dict):
     )
     phenix_process.communicate()
 
+@task(name="run_refmac", tags=["refmac_job"])
+def run_refmac(refine_params: dict):
+    with open(f"{refine_params['sample_dir']}/refmac.{datetime.now().strftime('%Y%m%d%H%M%S')}.log",'w') as log_file:
+        cmd = 'refmac5 hklin {hklin} hklout {hklout} xyzin {xyzin} xyzout {xyzout} libin {ligand}'.format(**refine_params)
+        with subprocess.Popen(cmd.split(), stdin=subprocess.PIPE, stdout=log_file, cwd=refine_params['sample_dir']) as proc:
+            print(f"running: {cmd}\nin {refine_params['sample_dir']}")
+            stdout = proc.communicate(input=f"@{refine_params['restraints']}".encode())
+    return refine_params
+
+@task(name="mtz2cif", tags=["mtz2cif_job"])
+def mtz2cif(refine_params: dict):
+    print("converting {sample_dir}/{hklout} to {sample_dir}/{hklout_cif}".format(**refine_params))
+    try:
+        mtz = gemmi.read_mtz_file("{sample_dir}/{hklout}".format(**refine_params))
+    except RuntimeError as e:
+        print(f"Caught {e} for {refine_params['hklout']}, waiting 5 sec and re-trying...")
+        time.sleep(5)
+        mtz = gemmi.read_mtz_file("{sample_dir}/{hklout}".format(**refine_params))
+
+    mtz_to_cif = gemmi.MtzToCif()
+    doc = gemmi.cif.Document()
+    doc.parse_string(mtz_to_cif.write_cif_to_string(mtz))
+    for block in doc:
+        if block.name == 'mtz':
+            block.name = refine_params['xyzin']
+    doc.write_file("{sample_dir}/{hklout_cif}".format(**refine_params))
+    return refine_params
+
+@task(name="refmac_mmcif_block_rename", tags=["refmac_mmcif_block_rename_job"])
+def refmac_mmcif_block_rename(refine_params: dict):
+    print("renaming {sample_dir}/{xyzout}.mmcif cif block to denote ensembled".format(**refine_params))
+    doc = gemmi.cif.read_file("{sample_dir}/{xyzout}.mmcif".format(**refine_params))
+    for block in doc:
+        if block.name == 'xxxx': #default given by refmac
+            block.name = refine_params['xyzout']
+            break # assume that it is the first block
+    #overwrite refmac-generated file with our updated version
+    doc.write_file("{sample_dir}/{xyzout}.mmcif".format(**refine_params))
 
 @flow(name="phenix_flow", task_runner=ConcurrentTaskRunner)
 def phenix_flow(jobs, **kwargs):
     run_phenix.map(jobs)
 
+@flow(name="refmac_flow", task_runner=ConcurrentTaskRunner)
+def refmac_flow(jobs, **kwargs):
+    output1 = run_refmac.map(jobs)
+    output2 = mtz2cif.map(output1)
+    refmac_mmcif_block_rename.map(output2)
 
 if __name__ == "__main__":
     n_cpus = multiprocessing.cpu_count()
@@ -77,4 +127,9 @@ if __name__ == "__main__":
 
     job_chunks = [jobs_list[i : i + n_chunks] for i in range(0, len(jobs_list), n_chunks)]
     for chunk in job_chunks:
-        phenix_flow(chunk)
+        if REFINEMENT_PROGRAM == 'phenix':
+            phenix_flow(chunk)
+        elif REFINEMENT_PROGRAM == 'refmac':
+            refmac_flow(chunk)
+        else:
+            raise Exception(f'Refinement program {REFINEMENT_PROGRAM} not implemented')

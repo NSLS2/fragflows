@@ -5,8 +5,8 @@ def real_space_map_stats(
     st: gemmi.Structure,
     rblock: gemmi.ReflnBlock,
     res: gemmi.Residue,
-    amplitude_label: str='pdbx_F_calc_with_solvent',
-    phase_label: str='pdbx_phase_calc_with_solvent'
+    amplitude_label: str='pdbx_FWT',
+    phase_label: str='pdbx_PHWT'
 ):
     """
     Computes real-space electron density statistics for a given residue.

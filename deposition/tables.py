@@ -7,6 +7,7 @@ from deposition.structure import make_structure_from_block_wrapper
 import numpy as np
 import traceback
 
+
 def generate_refinement_table(
     export_dir: str,
     dataset_csv: str,
@@ -104,6 +105,9 @@ def generate_refinement_validation_table(
     for _,row in refinement_df.iterrows():
         try:
             structure_doc = gemmi.cif.read_file(row['refined_structure_file'])
+            print(row['refined_structure_file'])
+            print(structure_doc)
+            print(structure_doc[0].name)
             structure_block = [block for block in structure_doc if basename in block.name][0]
             st = make_structure_from_block_wrapper(structure_block)
             rblock = gemmi.as_refln_blocks(gemmi.cif.read(row['refined_reflection_file']))[0]
