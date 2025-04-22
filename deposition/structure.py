@@ -1,5 +1,6 @@
 import gemmi
 
+
 def fix_formal_charges(func):
     """
     Phenix refine (v1.20) appears to write formal charge sign
@@ -15,30 +16,34 @@ def fix_formal_charges(func):
         callable: modified gemmi.make_structure_from_block
 
     """
+
     def wrapper(*args, **kwargs):
-        column_name = '_atom_site.pdbx_formal_charge'
+        column_name = "_atom_site.pdbx_formal_charge"
         column = args[0].find_loop(column_name)
         for idx, charge in enumerate(column):
-            if charge != '?':
-                if '+' in charge:
-                    new_charge = charge.replace('+','')
+            if charge != "?":
+                if "+" in charge:
+                    new_charge = charge.replace("+", "")
                     column[idx] = new_charge
-                elif '-' in charge:
-                    new_charge = ''.join(['-', charge.replace('-','')])
+                elif "-" in charge:
+                    new_charge = "".join(["-", charge.replace("-", "")])
                     column[idx] = new_charge
         return gemmi.make_structure_from_block(args[0])
+
     return wrapper
+
 
 @fix_formal_charges
 def make_structure_from_block_wrapper(*args, **kwargs):
     return gemmi.make_structure_from_block(*args, **kwargs)
+
 
 def merge_altlocs(st: gemmi.Structure):
     """
     Merge alternate locations (altlocs) in a gemmi Structure object.
 
     This function iterates through a gemmi Structure object, detects atoms with
-    alternate locations (altlocs), and merges them if they are within the RMSD 
+    alternate locations (altlocs), and merges them if they are within the RMSD
     threshold.
 
     Parameters
@@ -56,6 +61,7 @@ def merge_altlocs(st: gemmi.Structure):
             for residue in chain:
                 if any(atom.has_altloc() for atom in residue):
                     merge_residue_altlocs(st, residue, threshold=0.02)
+
 
 def merge_residue_altlocs(st: gemmi.Structure, res: gemmi.Residue, **kwargs):
     """
@@ -83,7 +89,7 @@ def merge_residue_altlocs(st: gemmi.Structure, res: gemmi.Residue, **kwargs):
     - The RMSD threshold is set via `kwargs`.
     - Calls `remove_atoms_from_res()` and `residue_altloc_dist()` for processing.
     - bilinear interpolation to assign occupancy, b_iso of merged conformer
-    - assumptions used for bilinear interp may not hold with aniso b values 
+    - assumptions used for bilinear interp may not hold with aniso b values
 
     Examples
     --------
@@ -92,35 +98,38 @@ def merge_residue_altlocs(st: gemmi.Structure, res: gemmi.Residue, **kwargs):
     >>> residue = structure[0]['A'][10]  # Model 0, Chain A, Residue 10
     >>> merge_residue_altlocs(structure, residue, threshold=0.02)
     """
-    
+
     altlocs = set()
     [altlocs.add(a.altloc) for a in res]
     altlocs = sorted(altlocs)[::-1]
     for i, al_i in enumerate(altlocs):
         atoms_i = atoms_from_altloc(res, al_i)
-        for al_j in altlocs[(i+1):]:
+        for al_j in altlocs[(i + 1) :]:
             atoms_j = atoms_from_altloc(res, al_j)
             if residue_altloc_dist(atoms_i, atoms_j, **kwargs):
                 for a_i, a_j in zip(atoms_i, atoms_j):
                     a_ij_occ = a_j.occ + a_i.occ
-                    a_j.b_iso = (a_i.occ/a_ij_occ)*a_i.b_iso + (a_j.occ/a_ij_occ)*a_j.b_iso
+                    a_j.b_iso = (a_i.occ / a_ij_occ) * a_i.b_iso + (
+                        a_j.occ / a_ij_occ
+                    ) * a_j.b_iso
                     a_j.occ = a_ij_occ
-                remove_atoms_from_res(res,[al_i])
+                remove_atoms_from_res(res, [al_i])
 
-    #remove altloc identifier if only single altloc remains
+    # remove altloc identifier if only single altloc remains
     altlocs = set()
     [altlocs.add(a.altloc) for a in res]
     altlocs = sorted(altlocs)[::-1]
     if len(altlocs) == 1:
-        if 'A' not in altlocs:
-            raise ValueError('expected altloc of A for single altloc')
+        if "A" not in altlocs:
+            raise ValueError("expected altloc of A for single altloc")
         else:
             for a in res:
-                a.altloc = '\0' # null altloc ''
-    
+                a.altloc = "\0"  # null altloc ''
+
     st.renumber_models()
-    
+
     return
+
 
 def remove_atoms_from_res(res: gemmi.Residue, altlocs: list):
     """Delete atoms from residue object that references structure
@@ -143,24 +152,26 @@ def remove_atoms_from_res(res: gemmi.Residue, altlocs: list):
     - Only increment if not deleting an atom, otherwise may cause
     strange side effects due to modifying in place
     """
-    
+
     i = 0
     while i < len(res):
         if res[i].altloc in altlocs:
             del res[i]
         else:
             i += 1
-            
-def atoms_from_altloc(res: gemmi.Residue, altloc='A')->list:
+
+
+def atoms_from_altloc(res: gemmi.Residue, altloc="A") -> list:
     """Return a list of atoms from a given residue"""
-    
+
     atoms = [a for a in res if a.altloc == altloc]
     if len(atoms) == 0:
-        raise ValueError('empty altloc atoms')
+        raise ValueError("empty altloc atoms")
     else:
         return atoms
 
-def residue_altloc_dist(grp1: list, grp2: list, threshold=0.02)->bool:
+
+def residue_altloc_dist(grp1: list, grp2: list, threshold=0.02) -> bool:
     """Calculate Euclidean distance for all pairs of atoms corresponding
     to different conformers, i.e. altlocs. If any one distance for a given
     pair exceeds the threshold, it is assumed that the conformers are in
@@ -180,23 +191,21 @@ def residue_altloc_dist(grp1: list, grp2: list, threshold=0.02)->bool:
     bool
         True if same, False if different conformers.
     """
-    
+
     if len(grp1) != len(grp2):
-        raise ValueError('different sized groups of atoms')
-        
-    for i,j in zip(grp1,grp2):
+        raise ValueError("different sized groups of atoms")
+
+    for i, j in zip(grp1, grp2):
         if i.pos.dist(j.pos) > threshold:
             if i.name != j.name:
-                raise ValueError('atom name mismatch')
+                raise ValueError("atom name mismatch")
             return False
     else:
         return True
-    
-    
+
+
 def remove_ground_state(
-    st: gemmi.Structure,
-    model_idx: int=0,
-    res_name: str='UNL'
+    st: gemmi.Structure, model_idx: int = 0, res_name: str = "UNL"
 ) -> gemmi.Structure:
     """Removes ground state conformation from pandda-style generated
     ensemble model.
@@ -215,27 +224,27 @@ def remove_ground_state(
     None
         Modifies gemmi structure in place.
     """
-    
+
     letter_gen = letter_generator()
     altlocs = set()
-    
-    #survey altlocs
+
+    # survey altlocs
     for chain in st[model_idx]:
         for res in chain:
             if res.name == res_name:
                 for atom in res:
                     altlocs.add(atom.altloc)
 
-    #remove these atoms (ground state)
+    # remove these atoms (ground state)
     n_atoms_before = st[model_idx].count_atom_sites()
-    sel = gemmi.Selection(','.join([':'] + list(altlocs)))
+    sel = gemmi.Selection(",".join([":"] + list(altlocs)))
     sel.remove_not_selected(st[model_idx])
     st.renumber_models()
     n_atoms_after = st[model_idx].count_atom_sites()
     if n_atoms_after >= n_atoms_before:
         raise ValueError
-    
-    #create name change map
+
+    # create name change map
     sorted_altlocs = sorted(list(altlocs))
     altlocs_map = {}
     letter_gen = letter_generator()
@@ -248,7 +257,7 @@ def remove_ground_state(
             for atom in res:
                 if atom.has_altloc():
                     atom.altloc = altlocs_map[atom.altloc]
-                    
+
     merge_altlocs(st)
-    
+
     return st

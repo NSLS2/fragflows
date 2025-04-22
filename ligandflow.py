@@ -14,11 +14,11 @@ from prefect.task_runners import ConcurrentTaskRunner
 from pathlib import Path
 import yaml
 
-with open("config.yaml","r") as yaml_file:
+with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
 
-MODELS_DIRECTORY = config['ligandflow']['models_directory']
-LIGAND_CSV = config['ligandflow']['ligand_csv']
+MODELS_DIRECTORY = config["ligandflow"]["models_directory"]
+LIGAND_CSV = config["ligandflow"]["ligand_csv"]
 
 
 @task(name="locate_models_dir", tags="acedrg_job")

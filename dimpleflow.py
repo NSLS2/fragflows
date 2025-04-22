@@ -15,15 +15,15 @@ import pandas
 import multiprocessing
 import yaml
 
-with open("config.yaml","r") as yaml_file:
+with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
 
-DATA_DIRECTORY = config['gather_xray_data']['data_directory']
-SAMPLE_NAME = config['gather_xray_data']['sample_name']
-PROCESSING_DATA_DIRECTORY = config['dimpleflow']['processing_data_directory']
-MODELS_DIRECTORY = config['dimpleflow']['models_directory']
-REFERENCE_PDB = config['dimpleflow']['reference_pdb']
-FILTERED_XRAY_CSV = config['dimpleflow']['filtered_xray_csv']
+DATA_DIRECTORY = config["gather_xray_data"]["data_directory"]
+SAMPLE_NAME = config["gather_xray_data"]["sample_name"]
+PROCESSING_DATA_DIRECTORY = config["dimpleflow"]["processing_data_directory"]
+MODELS_DIRECTORY = config["dimpleflow"]["models_directory"]
+REFERENCE_PDB = config["dimpleflow"]["reference_pdb"]
+FILTERED_XRAY_CSV = config["dimpleflow"]["filtered_xray_csv"]
 
 jobs_df = pandas.read_csv(FILTERED_XRAY_CSV)
 jobs_list = []
@@ -68,6 +68,8 @@ if __name__ == "__main__":
     else:
         n_chunks = 30
 
-    job_chunks = [jobs_list[i : i + n_chunks] for i in range(0, len(jobs_list), n_chunks)]
+    job_chunks = [
+        jobs_list[i : i + n_chunks] for i in range(0, len(jobs_list), n_chunks)
+    ]
     for chunk in job_chunks:
         dimple_flow(chunk)

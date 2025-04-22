@@ -12,11 +12,11 @@ import subprocess
 import datetime
 import yaml
 
-with open("config.yaml","r") as yaml_file:
+with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
 
-DATA_DIRECTORY = config['gather_xray_data']['data_directory']
-SAMPLE_NAME = config['gather_xray_data']['sample_name']
+DATA_DIRECTORY = config["gather_xray_data"]["data_directory"]
+SAMPLE_NAME = config["gather_xray_data"]["sample_name"]
 
 df = pandas.DataFrame()
 find_cmd = ["find", f"{DATA_DIRECTORY}", "-maxdepth", "4", "-name", "*summary.csv"]
@@ -62,7 +62,7 @@ print(reflection_files)
 final_df["filepath"] = ""
 for index, row in final_df.iterrows():
     for f in reflection_files:
-        if (row["Sample_Path"] in f):
+        if row["Sample_Path"] in f:
             final_df.at[index, "filepath"] = f
 
 print(final_df)
