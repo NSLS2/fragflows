@@ -2,6 +2,36 @@ import numpy as np
 import gemmi
 
 
+def event_map_stats(
+    st: gemmi.Structure,
+    density_map: gemmi.Ccp4Map,
+    res: gemmi.Residue,
+    tol: np.float64=0.01
+):
+
+    grid = density_map.grid
+    a,b,c = grid.unit_cell.a, grid.unit_cell.b, grid.unit_cell.c
+    a_, b_, c_ = st.cell.a, st.cell.b, st.cell.c
+    if not (np.isclose(a,a_,atol=tol) and np.isclose(b,b_,atol=tol) and np.isclose(c,c_,atol=tol)):
+        raise Exception('mismatching cell constants for density and structure!')
+    density_map.setup(np.nan)
+    grid.spacegroup = gemmi.SpaceGroup("P 1")
+    density_map.update_ccp4_header()
+
+    nu, nv, nw = grid.nu, grid.nv, grid.nw
+    d_min = np.min([2*a/nu, 2*b/nv, 2*c/nw])
+
+    dencalc = gemmi.DensityCalculatorE()
+    dencalc.d_min = d_min
+    dencalc.grid.setup_from(st)
+    dencalc.put_model_density_on_grid(st[0])
+    dencalc.grid.spacegroup = gemmi.SpaceGroup("P 1")
+    rho = np.zeros((len(res), 2))
+    for idx, atom in enumerate(res):
+        rho[idx, 0] = grid.interpolate_value(atom.pos)
+        rho[idx, 1] = dencalc.grid.interpolate_value(atom.pos)
+    return np.mean(rho[:, 0]), np.var(rho[:, 0]), np.corrcoef(rho.T)[0, 1]
+
 def real_space_map_stats(
     st: gemmi.Structure,
     rblock: gemmi.ReflnBlock,

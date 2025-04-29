@@ -160,6 +160,11 @@ def generate_refinement_validation_table(
                                 event_distances.argmin()
                             ]["uid"]
 
+                            nearest_event_map_file = event_df.loc[event_df['uid'] == nearest_event_no_pbc, 'event_map_file'].iloc[0]
+
+                            nearest_event_map = gemmi.read_ccp4_map(nearest_event_map_file)
+                            nearest_event_map_mean, nearest_event_map_var, nearest_event_map_cc = event_map_stats(st, nearest_event_map, residue)
+
                             result_dict = {
                                 "uid": str(uuid.uuid4()),
                                 "xtal_uid": row["uid"],
@@ -173,6 +178,9 @@ def generate_refinement_validation_table(
                                 "diff_z_score": real_space_diff_zscore(
                                     st, rblock, residue
                                 ),
+                                "nearest_event_mean": nearest_event_map_mean,
+                                "nearest_event_var": nearest_event_map_var,
+                                "nearest_event_cc": nearest_event_map_cc,
                                 "lig_prot_b_iso_ratio": lig_prot_b_iso_ratio(
                                     st, residue
                                 ),
