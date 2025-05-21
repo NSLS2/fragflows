@@ -65,7 +65,7 @@ def real_space_map_stats(
     """
 
     density_map = rblock.transform_f_phi_to_map(amplitude_label, phase_label)
-    dencalc = gemmi.DensityCalculatorE()
+    dencalc = gemmi.DensityCalculatorX()
     dencalc.d_min = np.min(rblock.make_d_array())
     dencalc.grid.setup_from(st)
     dencalc.put_model_density_on_grid(st[0])
