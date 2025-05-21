@@ -7,19 +7,7 @@ from .cif_blocks import (
     event_map_to_cif_block,
 )
 from .structure import remove_ground_state
-
-
-def letter_generator():
-    def get_letter(num):
-        result = []
-        while num > 0:
-            num, remainder = divmod(num - 1, 26)
-            result.append(string.ascii_uppercase[remainder])
-            return "".join(reversed(result))
-
-    for k in range(1, 15000):
-        yield get_letter(k)
-
+from .utils import letter_generator
 
 def make_changed_state_sf_cif(
     table1: pd.DataFrame,
@@ -41,7 +29,7 @@ def make_changed_state_sf_cif(
     except KeyError as e:
         print(f"caught {e}: missing refinement reflection cif for {xtal_id}")
     refinement_block = refinement_cif_to_cif_block(REFINEMENT_SF_CIF)
-    # rblock = gemmi.as_refln_blocks(gemmi.cif.read_file(REFINEMENT_SF_CIF))[0]
+    rblock = gemmi.as_refln_blocks(gemmi.cif.read_file(REFINEMENT_SF_CIF))[0]
 
     # original intensity measurements
     REFLECTION_DATA = table1.loc[
@@ -118,19 +106,19 @@ def make_changed_state_cif(
     template_block = gemmi.cif.read_file(template_path).sole_block()
     doc.add_copied_block(template_block, pos=-1)
 
-    # update block name to reflect ground state removal, verify ensemble input
-    # assign default entry_id to be updated by PDB
-    sblock.name = block_name
-    sblock.set_pair("_entry.id", block_name)
+    if "ensemble" not in sblock.name:
+        raise ValueError("input does not appear to be pandda ensemble model")
 
     for x in sblock.get_mmcif_category_names():
         pair_key = f"{x}entry_id"
         pair = sblock.find_value(pair_key)
         if pair is not None:
-            if "ensemble" not in pair:
-                raise ValueError("input does not appear to be pandda ensemble model")
-            else:
-                sblock.set_pair(pair_key, block_name)
+            sblock.set_pair(pair_key, block_name)
+
+    # update block name to reflect ground state removal, verify ensemble input
+    # assign default entry_id to be updated by PDB
+    sblock.name = block_name
+    sblock.set_pair("_entry.id", block_name)
 
     # ground state removed, changed state model
     doc.add_copied_block(sblock, pos=-1)
@@ -142,3 +130,22 @@ def make_changed_state_cif(
             doc.add_copied_block(block, pos=-1)
 
     return doc
+
+def assemble_group_changed_state_cifs(
+        refinement_table: pd.DataFrame,
+        event_table: pd.DataFrame,
+        group_dep_dir: str,
+        **kwargs
+):
+    xtal_ids = list(refinement_table['xtal_id'])
+    if len(set(xtal_ids)) != len(xtal_ids):
+        raise Exception('redundant xtal_ids found in refinement_table')
+    
+    for xtal_id in xtal_ids:
+        print(f'generating files for {xtal_id}')
+        changed_state_sf_doc = make_changed_state_sf_cif(refinement_table, event_table, xtal_id)
+        changed_state_doc = make_changed_state_cif(refinement_table, xtal_id, **kwargs)
+        changed_state_sf_doc.write_file(f'{group_dep_dir}/{xtal_id}-sf.cif')
+        changed_state_doc.write_file(f'{group_dep_dir}/{xtal_id}.cif')
+
+    return

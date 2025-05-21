@@ -1,4 +1,5 @@
 import gemmi
+from .utils import letter_generator
 
 
 def fix_formal_charges(func):
@@ -107,7 +108,10 @@ def merge_residue_altlocs(st: gemmi.Structure, res: gemmi.Residue, **kwargs):
         for al_j in altlocs[(i + 1) :]:
             atoms_j = atoms_from_altloc(res, al_j)
             if residue_altloc_dist(atoms_i, atoms_j, **kwargs):
+                print(f'removing residue: {res.name} {res.seqid} in {st.name}')
                 for a_i, a_j in zip(atoms_i, atoms_j):
+                    print(a_i.name, a_i.occ)
+                    print(a_j.name, a_j.occ)
                     a_ij_occ = a_j.occ + a_i.occ
                     a_j.b_iso = (a_i.occ / a_ij_occ) * a_i.b_iso + (
                         a_j.occ / a_ij_occ
@@ -171,7 +175,7 @@ def atoms_from_altloc(res: gemmi.Residue, altloc="A") -> list:
         return atoms
 
 
-def residue_altloc_dist(grp1: list, grp2: list, threshold=0.02) -> bool:
+def residue_altloc_dist(grp1: list, grp2: list, threshold=0.05) -> bool:
     """Calculate Euclidean distance for all pairs of atoms corresponding
     to different conformers, i.e. altlocs. If any one distance for a given
     pair exceeds the threshold, it is assumed that the conformers are in
