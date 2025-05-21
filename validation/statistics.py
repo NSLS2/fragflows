@@ -17,12 +17,8 @@ def event_map_stats(
     density_map.setup(np.nan)
     grid.spacegroup = gemmi.SpaceGroup("P 1")
     density_map.update_ccp4_header()
-
-    nu, nv, nw = grid.nu, grid.nv, grid.nw
-    d_min = np.min([2*a/nu, 2*b/nv, 2*c/nw])
-
-    dencalc = gemmi.DensityCalculatorE()
-    dencalc.d_min = d_min
+    dencalc = gemmi.DensityCalculatorX()
+    dencalc.d_min = st.resolution
     dencalc.grid.setup_from(st)
     dencalc.put_model_density_on_grid(st[0])
     dencalc.grid.spacegroup = gemmi.SpaceGroup("P 1")
