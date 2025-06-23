@@ -6,7 +6,7 @@ def event_map_stats(
     st: gemmi.Structure,
     density_map: gemmi.Ccp4Map,
     res: gemmi.Residue,
-    tol: np.float64=0.01
+    tol: np.float64=0.01,
 ):
 
     grid = density_map.grid
