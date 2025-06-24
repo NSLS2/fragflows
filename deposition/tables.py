@@ -85,7 +85,7 @@ def generate_event_table(
                     str(f)
                     for f in single_export_dir.iterdir()
                     if f.is_file()
-                    and f"event_{row['event_idx']}" in f.name
+                    and f"event_{row['event_idx']}_" in f.name
                     and f.name.endswith("ccp4")
                 ),
                 None,
