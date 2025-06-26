@@ -39,7 +39,7 @@ def populate_minimal_block_pairs(
     block.set_pair("_reflns_crystal.id", "1")
     block.set_pair("_reflns_scale.group_code", "1")
 
-    block.set_pair("_symmetry.space_group_name_H-M", f"{spacegroup.hm}")
+    block.set_pair("_symmetry.space_group_name_H-M", f'"{spacegroup.hm}"')
     block.set_pair("_symmetry.Int_Tables_number", f"{spacegroup.number}")
 
     return
