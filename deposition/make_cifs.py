@@ -82,6 +82,7 @@ def make_changed_state_cif(
     table1: pd.DataFrame,
     xtal_id: str,
     template_path: str,
+    ligand_csv: str,
     block_append_identifier: str = "comp_",
     block_name: str = "xxxx",
 ):
@@ -104,6 +105,24 @@ def make_changed_state_cif(
 
     # information from template cif
     template_block = gemmi.cif.read_file(template_path).sole_block()
+
+    # inject structure specific information into template_block
+    # this information will ultimately include: collection_date, wavelength, catalog_id
+
+    # catalog_id
+    ligand_df = pd.read_csv(ligand_csv)
+    xtal_id_soak_entry = ligand_df[ligand_df['xtal_id'] == xtal_id]
+    if not xtal_id_soak_entry.empty:
+        catalog_id = xtal_id_soak_entry['catalog_id'].iloc[0]
+    else:
+        catalog_id = None
+    
+    try:
+        s = template_block.find_pair('_struct.title')[-1]
+        template_block.set_pair('_struct.title',s.replace('XXXX',catalog_id))
+    except TypeError:
+        print(f'Error updating template cif block ligand catalog_id for {xtal_id}')
+
     doc.add_copied_block(template_block, pos=-1)
 
     if "ensemble" not in sblock.name:
