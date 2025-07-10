@@ -54,8 +54,14 @@ def run_dimple(dimple_params: dict):
         stderr=subprocess.PIPE,
         timeout=1000,
     )
-    dimple_process.communicate()
 
+    try:
+        dimple_process.communicate(timeout=1000)
+    except subprocess.TimeoutExpired:
+        dimple_process.kill()
+        dimple_process.communicate()
+        print(f"Dimple process timed out and was killed for cmd: {cmd}")
+    
 
 @flow(name="dimple_flow", task_runner=ConcurrentTaskRunner)
 def dimple_flow(jobs, **kwargs):
