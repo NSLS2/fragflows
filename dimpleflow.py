@@ -52,6 +52,7 @@ def run_dimple(dimple_params: dict):
         cwd=MODELS_DIRECTORY,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        timeout=1000,
     )
     dimple_process.communicate()
 
