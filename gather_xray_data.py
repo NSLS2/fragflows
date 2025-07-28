@@ -49,8 +49,13 @@ final_df = df_filtered.groupby("xtal_id").apply(
 find_cmd = [
     "find",
     f"{DATA_DIRECTORY}",
+    "(",
     "-name",
     "truncate-unique.mtz",
+    "-o",
+    "-name",
+    "fast_dp.mtz",
+    ")",
 ]
 reflection_files = subprocess.check_output(
     find_cmd, universal_newlines=True
@@ -62,7 +67,14 @@ print(reflection_files)
 final_df["filepath"] = ""
 for index, row in final_df.iterrows():
     for f in reflection_files:
-        if row["Sample_Path"] in f:
+        if row['pipeline'] == 'fast_dp':
+            reflection_file_name = 'fast_dp.mtz'
+        elif row['pipeline'] == 'autoProc':
+            reflection_file_name = 'truncate-unique.mtz'
+        else:
+            raise Exception(f"unrecognized processing pipeline name {row['pipeline']}")
+        
+        if (row["Sample_Path"] in f) and (reflection_file_name in f):
             final_df.at[index, "filepath"] = f
 
 print(final_df)
