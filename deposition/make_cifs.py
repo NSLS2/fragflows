@@ -175,15 +175,11 @@ def assemble_group_changed_state_cifs(
     if len(set(xtal_ids)) != len(xtal_ids):
         raise Exception('redundant xtal_ids found in refinement_table')
     
-    i = 0
     for xtal_id in xtal_ids:
         print(f'generating files for {xtal_id}')
         changed_state_sf_doc = make_changed_state_sf_cif(refinement_table, event_table, xtal_id)
         changed_state_doc = make_changed_state_cif(refinement_table, xtal_id, **kwargs)
         changed_state_sf_doc.write_file(f'{group_dep_dir}/{xtal_id}-sf.cif')
         changed_state_doc.write_file(f'{group_dep_dir}/{xtal_id}.cif')
-        if i > 10:
-            break
-        i += 1
 
     return
