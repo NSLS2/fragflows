@@ -123,8 +123,6 @@ def make_changed_state_cif(
     except TypeError:
         print(f'Error updating template cif block ligand catalog_id for {xtal_id}')
 
-    doc.add_copied_block(template_block, pos=-1)
-
     if "ensemble" not in sblock.name:
         raise ValueError("input does not appear to be pandda ensemble model")
 
@@ -138,6 +136,12 @@ def make_changed_state_cif(
     # assign default entry_id to be updated by PDB
     sblock.name = block_name
     sblock.set_pair("_entry.id", block_name)
+
+    # rather than append template block to structure block, loop through
+    # template and add elements to structure block to avoid separate blocks
+    for idx, item in enumerate(template_block):
+        sblock.add_item(item)
+        sblock.move_item(-1,idx)
 
     # ground state removed, changed state model
     doc.add_copied_block(sblock, pos=-1)
@@ -160,11 +164,15 @@ def assemble_group_changed_state_cifs(
     if len(set(xtal_ids)) != len(xtal_ids):
         raise Exception('redundant xtal_ids found in refinement_table')
     
+    i = 0
     for xtal_id in xtal_ids:
         print(f'generating files for {xtal_id}')
         changed_state_sf_doc = make_changed_state_sf_cif(refinement_table, event_table, xtal_id)
         changed_state_doc = make_changed_state_cif(refinement_table, xtal_id, **kwargs)
         changed_state_sf_doc.write_file(f'{group_dep_dir}/{xtal_id}-sf.cif')
         changed_state_doc.write_file(f'{group_dep_dir}/{xtal_id}.cif')
+        if i > 10:
+            break
+        i += 1
 
     return
