@@ -1,5 +1,6 @@
 import gemmi
 import pandas as pd
+import numpy as np
 import string
 from .cif_blocks import (
     refinement_cif_to_cif_block,
@@ -8,6 +9,8 @@ from .cif_blocks import (
 )
 from .structure import remove_ground_state
 from .utils import letter_generator
+from urllib.parse import urlencode
+
 
 def make_changed_state_sf_cif(
     table1: pd.DataFrame,
@@ -65,13 +68,21 @@ def make_changed_state_sf_cif(
         x, y, z = row["x"], row["y"], row["z"]
         event_background_density_correction = row["1-BDC"]
 
-        diffrn_details = f"ligand evidence PanDDA event map;1-BDC=({event_background_density_correction});event_site=({x},{y},{z})"
+        diffrn_details = {
+            "ligand_evidence": "PanDDA_event_map",
+            "1-BDC": event_background_density_correction,
+            "event_site_x": np.round(x,3),
+            "event_site_y": np.round(y,3),
+            "event_site_z": np.round(z,3),
+        }
+        diffrn_details_url = urlencode(diffrn_details)
+
         event_map_block = event_map_to_cif_block(
             EVENT_MAP,
             high_res=high_res,
             block_name=f"xxxx{next(letter_gen)}sf",
             wavelength=wl,
-            details=diffrn_details,
+            details=diffrn_details_url,
         )
         doc.add_copied_block(event_map_block)
 
