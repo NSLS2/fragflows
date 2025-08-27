@@ -10,7 +10,7 @@ from .cif_blocks import (
 from .structure import remove_ground_state
 from .utils import letter_generator
 from urllib.parse import urlencode
-
+from .load import ispyb_xml_to_cif_block
 
 def make_changed_state_sf_cif(
     table1: pd.DataFrame,
@@ -118,7 +118,17 @@ def make_changed_state_cif(
     template_block = gemmi.cif.read_file(template_path).sole_block()
 
     # inject structure specific information into template_block
-    # this information will ultimately include: collection_date, wavelength, catalog_id
+    # this information will ultimately include:
+    # reflection stats, collection_date, wavelength, catalog_id
+
+    rstats_xml = table1.loc[
+        table1["xtal_id"] == xtal_id, "ispyb_xml"
+    ].iloc[0]
+
+    rstats_block = ispyb_xml_to_cif_block(rstats_xml)
+
+    for idx, item in enumerate(rstats_block):
+        template_block.add_item(item)
 
     # catalog_id
     ligand_df = pd.read_csv(ligand_csv)
