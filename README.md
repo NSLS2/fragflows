@@ -111,10 +111,34 @@ python ligandflow.py
 
 Additionally, if there are more than 500 datasets, a `max_new_datasets=` keyword argument will also need to be defined with a value greater than the total number of datasets being analyzed. We recommend running the main `pandda.analyse` run on one of our 300+ core AMD nodes.
 
+We recommend a minimum of three `pandda.analyse` runs. The first run will be to flush out any issues with the input diffraction data and to model in bonafide fragment hits with `pandda.inspect`. This first pass will allow for an estimation of the hit rate and for detection of any data pathologies such as those arising from conformational changes within the input datasets.
+
+### pandda.analyse (first run)
 ```bash
 source /nsls2/software/mx/scripts/pandda_setup.sh
-cd 123456-mytarget-processing
+cd /nsls2/data/amx/proposals/2025-2/pass-123456/123456-mytarget-processing
 pandda.analyse output_dir="pandda_analyse_ccp4-7.0_20250618-1" pdb_style="*.dimple.pdb" max_new_datasets=1000 cpus=200 ignore_datasets="mytarget-103,mytarget-744" data_dirs="models_20241220-1/*"
+```
+
+### pandda.analyse (second run; mean map calculation)
+The purpose of the second `pandda.analyse` run is to calculate a high resolution mean map, which will be used to manually real space refine a high resolution reference model. If there were no issues detected in the initial analyse run then the second run will use the same parameters with an additional parameter of `calculate_first_average_map_only=True`; `output_dir` should also be incremented to create a new analyse directory. 
+
+```bash
+pandda.analyse output_dir="pandda_analyse_ccp4-7.0_20250618-2" pdb_style="*.dimple.pdb" max_new_datasets=1000 cpus=200 ignore_datasets="mytarget-103,mytarget-744" data_dirs="models_20241220-1/*" calculate_first_average_map_only=True
+```
+The resulting mean map will be placed as a ccp4 map file in the `reference/statistical_maps` subdirectory in the main analyse directory. A symlink to a high resolution reference model will be placed in `reference`. The map and the reference model will have different frames of reference, so the model will need to be docked into the map. If possible this docking can be achieved manually with chimerax or a robust automated docking protocol can be run with `phenix.dock_in_map`. At NSLS-II this can be achieved with the following commands assuming that you are already in the main analyse directory created with this second average map run:
+
+```bash
+source source /nsls2/software/mx/phenix-1.20.1-4487/phenix_env.sh
+cd reference/statistical_maps
+phenix.dock_in_map ../reference.pdb <mean map ccp4 file> crystal_info.resolution=d_min
+```
+Note that you should use the resolution in the name of the mean map file for `d_min`. Once this model is successfully docked, manually iterate through the entire model correcting any sidechain motion and ordered solvent displacement. When manual correction is complete, open a copy of the original reference model and use Coot's LSQ feature to superimpose the corrected model back onto the reference model. Save this model and edit the relevant dimpleflow parameter in `config.yaml`. Finally, re-run dimpleflow in a new `models_*` directory using the recently created average reference model. The resultant dimpleflow output will be used in the third and final `pandda.analyse` step.
+
+### pandda.analyse (third run; final)
+The final `pandda.analyse` run will be very similar to the parameters used in the first successful run, with the exception of an updated `data_dirs` that should now point to the most recent dimple directory created using the average reference model. This run will be used to create the ensemble models that are ultimately deposited in the pdb.
+```bash
+pandda.analyse output_dir="pandda_analyse_ccp4-7.0_20250618-3" pdb_style="*.dimple.pdb" max_new_datasets=1000 cpus=200 ignore_datasets="mytarget-103,mytarget-744" data_dirs="models_YYYYMMDD-N/*" \
 ```
 
 ### pandda.inspect
@@ -165,6 +189,7 @@ refinement_table:
   - refined_reflection_file # mmcif absolute path
   - smiles # added fragment SMILES string
   - catalog_id # vendor-provided alphanumeric catalog_id
+  - input_structure_file # the ensemble model input into the refinement program
 
 event_table:
   - uid # uuid for an event extracted from pandda_inspect_events.csv
