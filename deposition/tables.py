@@ -3,7 +3,7 @@ import os
 import uuid
 from pathlib import Path
 from validation.statistics import *
-from deposition.structure import make_structure_from_block_wrapper
+from deposition.structure import make_structure_from_block_wrapper, get_residue
 import numpy as np
 import traceback
 
@@ -24,6 +24,7 @@ def generate_refinement_table(
     dataset_df = pd.read_csv(dataset_csv)
 
     # the most recently modified reflection/structure cif file is considered to be the final file
+    # the input ensemble model used for refinement is collected to perform a validation check later
 
     for d in os.listdir(export_dir):
         data_dir = Path(Path(export_dir) / Path(d))
@@ -32,10 +33,22 @@ def generate_refinement_table(
             for f in data_dir.iterdir()
             if (basename in f.name and f.is_file() and f.name.endswith("cif"))
         ]
+
+        pdb_path = data_dir / Path(f"{d}-ensemble-model.pdb")
+        input_pdb = str(pdb_path) if pdb_path.exists() else None
+
+        input_structure_file = [
+            f for f in data_dir.iterdir()
+        ]
+        for file in data_dir.iterdir():
+            if basename in file.name and file.is_file() and file.name.endswith("cif"):
+                refine_cifs.append(file)
+
         refine_cifs = sorted(refine_cifs, key=lambda f: f.stat().st_mtime, reverse=True)
         result_dict = {
             "uid": str(uuid.uuid4()),
             "xtal_id": d,
+            "input_structure_file": input_pdb,
             "refined_structure_file": next(
                 (str(f) for f in refine_cifs if basename_hkl not in f.name), None
             ),
@@ -168,6 +181,9 @@ def generate_refinement_validation_table(
                             nearest_event_map = gemmi.read_ccp4_map(nearest_event_map_file)
                             nearest_event_map_mean, nearest_event_map_var, nearest_event_map_cc = event_map_stats(st, nearest_event_map, residue)
 
+                            before_refine_residue = get_residue(gemmi.read_structure(row["input_structure_file"]), chain, residue.seqid.num)
+                            residue_displacement = mean_residue_displacement(residue, before_refine_residue)
+
                             result_dict = {
                                 "uid": str(uuid.uuid4()),
                                 "xtal_uid": row["uid"],
@@ -189,6 +205,7 @@ def generate_refinement_validation_table(
                                 ),
                                 "nearest_event_no_pbc": nearest_event_no_pbc,
                                 "dist_to_nearest_event": np.min(event_distances),
+                                "residue_displacement": residue_displacement
                             }
                             result_list.append(result_dict)
         except Exception as e:

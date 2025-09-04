@@ -265,3 +265,12 @@ def remove_ground_state(
     merge_altlocs(st)
 
     return st
+
+def get_residue(st: gemmi.Structure, chain: gemmi.Chain, seqid: int):
+    for m in st:
+        for c in m:
+            if c.name == chain.name:
+                for r in c:
+                    if r.seqid.num == seqid:
+                        return r
+    raise ValueError('residue not found')
