@@ -18,6 +18,8 @@ import yaml
 from datetime import datetime
 import gemmi
 import time
+import argparse
+from typing import Optional
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -29,31 +31,48 @@ BASENAME = config["refineflow"]["basename"]
 BASENAME_HKL = config["refineflow"]["basename_hkl"]
 REFINEMENT_PROGRAM = config["refineflow"]["refinement_program"]
 
-jobs_list = []
 
-for d in os.listdir(EXPORT_DATA_DIRECTORY):
-    ligand_row = ligand_df.loc[ligand_df["xtal_id"] == d, "catalog_id"]
-    print(ligand_row)
-    ligand = ligand_row.iloc[0] if not ligand_row.empty else None
-    print(ligand)
-    if ligand == "DMSO":
-        ligand = None
+def _parse_selected_datasets(arg_str: Optional[str]):
+    if not arg_str:
+        return None
+    # support both comma-separated and accidental spaces
+    items = [x.strip() for x in arg_str.split(",")]
+    items = [x for x in items if x]
+    return set(items) if items else set()
 
-    job_dict = {
-        "xyzin": f"{d}-{BASENAME}.pdb",
-        "xyzout": f"{d}-{BASENAME}_refine",
-        "hklin": f"{d}-{BASENAME_HKL}.mtz",
-        "hklout": f"{d}-{BASENAME}_refine.mtz",
-        "hklout_cif": f"{d}-{BASENAME}_refine.reflections.cif",
-        "restraints": f"{d}-{BASENAME}.restraints-{REFINEMENT_PROGRAM}.params",
-        "ligand": None,
-        "sample_dir": str(Path(EXPORT_DATA_DIRECTORY) / Path(d)),
-    }
 
-    if ligand is not None:
-        job_dict["ligand"] = f"{ligand}.cif"
+def build_jobs_list(selected: Optional[set[str]])->list:
 
-    jobs_list.append(job_dict)
+    jobs_list = []
+
+    for d in os.listdir(EXPORT_DATA_DIRECTORY):
+        ligand_row = ligand_df.loc[ligand_df["xtal_id"] == d, "catalog_id"]
+        print(ligand_row)
+        ligand = ligand_row.iloc[0] if not ligand_row.empty else None
+        print(ligand)
+        if ligand == "DMSO":
+            ligand = None
+
+        job_dict = {
+            "xyzin": f"{d}-{BASENAME}.pdb",
+            "xyzout": f"{d}-{BASENAME}_refine",
+            "hklin": f"{d}-{BASENAME_HKL}.mtz",
+            "hklout": f"{d}-{BASENAME}_refine.mtz",
+            "hklout_cif": f"{d}-{BASENAME}_refine.reflections.cif",
+            "restraints": f"{d}-{BASENAME}.restraints-{REFINEMENT_PROGRAM}.params",
+            "ligand": None,
+            "sample_dir": str(Path(EXPORT_DATA_DIRECTORY) / Path(d)),
+        }
+
+        if ligand is not None:
+            job_dict["ligand"] = f"{ligand}.cif"
+
+        if selected:
+            if d in selected:
+                jobs_list.append(job_dict)
+        else:
+            jobs_list.append(job_dict)
+    return jobs_list
 
 
 @task(name="run_phenix", tags=["phenix_job"])
@@ -150,6 +169,17 @@ def refmac_flow(jobs, **kwargs):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Refinement runner")
+    parser.add_argument(
+        "--select_datasets", "--select-datasets",
+        dest="select_datasets",
+        default=None,
+        help='Comma-separated dataset IDs to refine, e.g. --select_datasets "xtal-001, xtal-002". '
+             'If omitted, refine all datasets found.'
+    )
+    args, _ = parser.parse_known_args()
+    selected = _parse_selected_datasets(args.select_datasets)
+    jobs_list = build_jobs_list(selected)
     n_cpus = multiprocessing.cpu_count()
     if n_cpus < 30:
         n_chunks = n_cpus
