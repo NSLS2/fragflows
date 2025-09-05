@@ -144,3 +144,11 @@ def real_space_diff_zscore(
     for atom in res:
         rho.append(density_map.interpolate_value(atom.pos))
     return np.mean(np.array(rho) / sigma)
+
+def mean_residue_displacement(residue1: gemmi.Residue, residue2: gemmi.Residue):
+    """This function assumes that the two residues have mostly corresponding
+    atoms."""
+    if residue1.name != residue2.name:
+        raise ValueError('mismatched residues')
+    displacement = np.mean([a.pos for a in residue1]) - np.mean([a.pos for a in residue2])
+    return np.sqrt(displacement.dot(displacement))
