@@ -11,6 +11,7 @@ import pandas
 import subprocess
 import datetime
 import yaml
+import numpy as np
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -40,10 +41,22 @@ df["xtal_id"] = ""
 for index, row in df.iterrows():
     df.at[index, "xtal_id"] = row["Sample_Path"].split("/")[0]
 
+# define selection rules
+def pick_row(group: pandas.DataFrame)->pandas.Series:
+
+    acceptable_r_mrg = group.loc[group["R_mrg"] <= 0.45]
+    if not acceptable_r_mrg.empty:
+        return group.loc[acceptable_r_mrg["Hi"].idxmin()]
+
+    less_acceptable_r_mrg = group.loc[group["R_mrg"] > 0.45]
+    if not less_acceptable_r_mrg.empty:
+        return group.loc[less_acceptable_r_mrg["R_mrg"].idxmin()]
+
+    return group.iloc[0]
+
 df_filtered = df[df["xtal_id"].str.contains(f"{SAMPLE_NAME}")]
-final_df = df_filtered.groupby("xtal_id").apply(
-    lambda group: group.loc[group["Hi"].idxmin()]
-)
+df_filtered["R_mrg"] = df_filtered["R_mrg"].astype(np.float64)
+final_df = df_filtered.groupby("xtal_id", group_keys=False).apply(pick_row)
 
 # get list of all reflection files
 find_cmd = [
