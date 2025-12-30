@@ -20,6 +20,7 @@ import gemmi
 import time
 import argparse
 from typing import Optional
+from ensemble_models import ensemble_merge
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -54,12 +55,14 @@ def build_jobs_list(selected: Optional[set[str]])->list:
             ligand = None
 
         job_dict = {
+            "acceptor": f"{d}-pandda-input.pdb",
+            "donor": f"{d}-pandda-model.pdb",
             "xyzin": f"{d}-{BASENAME}.pdb",
             "xyzout": f"{d}-{BASENAME}_refine",
             "hklin": f"{d}-{BASENAME_HKL}.mtz",
             "hklout": f"{d}-{BASENAME}_refine.mtz",
-            "hklout_cif": f"{d}-{BASENAME}_refine.reflections.cif",
-            "restraints": f"{d}-{BASENAME}.restraints-{REFINEMENT_PROGRAM}.params",
+            "hklout_cif": f"{d}-{BASENAME}-ensemble_refine.reflections.cif",
+            "restraints": f"{d}-{BASENAME}.ff-restraints-{REFINEMENT_PROGRAM}.params",
             "ligand": None,
             "sample_dir": str(Path(EXPORT_DATA_DIRECTORY) / Path(d)),
         }
@@ -74,6 +77,18 @@ def build_jobs_list(selected: Optional[set[str]])->list:
             jobs_list.append(job_dict)
     return jobs_list
 
+@task(name="generate_ensemble", tags=["ensemble_merge"])
+def generate_ensemble(merge_params: dict):
+    acceptor_path = str(Path(merge_params['sample_dir']) / Path(merge_params['acceptor']))
+    donor_path = str(Path(merge_params['sample_dir']) / Path(merge_params['donor']))
+    acceptor = gemmi.read_structure(acceptor_path)
+    donor = gemmi.read_structure(donor_path)
+    em = ensemble_merge.EnsembleMerger(acceptor, donor, occupancy_kwargs={"eps": 3, "min_samples":1})
+    em.run()
+    em.acceptor.write_pdb(str(Path(merge_params['sample_dir']) / Path(merge_params['xyzin']))) #xyzin for refinement
+    with open(str(Path(merge_params['sample_dir']) / Path(merge_params['restraints'])),'w') as f:
+        f.write(em.refmac_restraints_to_string())
+    return
 
 @task(name="run_phenix", tags=["phenix_job"])
 def run_phenix(phenix_params: dict):
@@ -163,9 +178,10 @@ def phenix_flow(jobs, **kwargs):
 
 @flow(name="refmac_flow", task_runner=ConcurrentTaskRunner)
 def refmac_flow(jobs, **kwargs):
-    output1 = run_refmac.map(jobs)
-    output2 = mtz2cif.map(output1)
-    refmac_mmcif_block_rename.map(output2)
+    output1 = generate_ensemble.map(jobs)
+    output2 = run_refmac.map(output1)
+    output3 = mtz2cif.map(output2)
+    refmac_mmcif_block_rename.map(output3)
 
 
 if __name__ == "__main__":
