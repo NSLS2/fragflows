@@ -107,6 +107,7 @@ def run_phenix(phenix_params: dict):
 
 @task(name="run_refmac", tags=["refmac_job"])
 def run_refmac(refine_params: dict):
+    print(refine_params)
     with open(
         f"{refine_params['sample_dir']}/refmac.{datetime.now().strftime('%Y%m%d%H%M%S')}.log",
         "w",
@@ -178,10 +179,10 @@ def phenix_flow(jobs, **kwargs):
 
 @flow(name="refmac_flow", task_runner=ConcurrentTaskRunner)
 def refmac_flow(jobs, **kwargs):
-    output1 = generate_ensemble.map(jobs)
-    output2 = run_refmac.map(output1)
-    output3 = mtz2cif.map(output2)
-    refmac_mmcif_block_rename.map(output3)
+    ensemble_runs = generate_ensemble.map(jobs)
+    run_refmac.map(jobs, wait_for=ensemble_runs)
+    #output3 = mtz2cif.map(output2)
+    #refmac_mmcif_block_rename.map(output3)
 
 
 if __name__ == "__main__":
@@ -206,6 +207,7 @@ if __name__ == "__main__":
         jobs_list[i : i + n_chunks] for i in range(0, len(jobs_list), n_chunks)
     ]
     for chunk in job_chunks:
+        print(chunk)
         if REFINEMENT_PROGRAM == "phenix":
             phenix_flow(chunk)
         elif REFINEMENT_PROGRAM == "refmac":

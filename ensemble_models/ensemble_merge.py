@@ -6,7 +6,7 @@ import string
 from collections import OrderedDict
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import pairwise_distances
-
+from .sync_solvent import sync_solvent_labels
 
 
 # map altlocs
@@ -795,7 +795,8 @@ class EnsembleMerger:
                  donor: gemmi.Structure,
                  xtal_id: str=None,
                  bdc: np.float64=0.8,
-                 occupancy_kwargs: dict={'eps': 2.5, 'min_samples':1}):
+                 occupancy_kwargs: dict={'eps': 2.5, 'min_samples':1},
+                 sync_solvent=True):
 
         #donor model is merged into acceptor model which is modified in place
         self.xtal_id = xtal_id
@@ -806,6 +807,9 @@ class EnsembleMerger:
 
         #check model, raise exception if possible mismatch detected
         self._model_precheck()
+
+        if sync_solvent:
+            self._sync_solvent_labels()
         
         #populated during merging
         self._acceptor_residues = None
@@ -824,6 +828,9 @@ class EnsembleMerger:
 
         if not self.acceptor.resolution == self.donor.resolution:
             raise ValueError(f"mismatching resolution, acceptor: {self.acceptor.resolution} vs. donor: {self.donor.resolution}")
+
+    def _sync_solvent_labels(self):
+        sync_solvent_labels(self.acceptor, self.donor)
 
     def _map_altlocs(self):
         
