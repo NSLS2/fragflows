@@ -132,12 +132,14 @@ def generate_donor_solvent_alias(
     return donor_solvent_alias
 
 
-def insert_solvent_chain(model: gemmi.Model, solvent_residues: dict, solvent_alias: dict, chain_name='S'):
+def insert_solvent_chain(
+    model: gemmi.Model, solvent_residues: dict, solvent_alias: dict, chain_name="S"
+):
     new_solvent_chain = gemmi.Chain(chain_name)
     inverse_solvent_alias = {v: [] for v in set(solvent_alias.values())}
     for k, v in solvent_alias.items():
         inverse_solvent_alias[v].append(k)
-    
+
     for residue in sorted(inverse_solvent_alias.keys(), key=lambda r: r[1]):
         _, new_seqid, _ = residue
         solvent_atoms = []
@@ -209,11 +211,28 @@ def check_for_one_atom_res_clash(st: gemmi.Structure, resname: str, cutoff=0.01)
             f"overlapping residues detected structure: {st}, residues: {clashing_residues}:{resname}"
         )
 
+
 def check_for_solvent_clash(st: gemmi.Structure):
-    check_for_one_atom_res_clash(st, 'HOH')
+    check_for_one_atom_res_clash(st, "HOH")
+
 
 def check_for_nonpolymer_clashes(st: gemmi.Structure):
-    for resname in ['Cl','K','Na','Zn','Br','Ca','Mg','DMS','GOL','SO4','PO4','ATP','UNL','LIG']:
+    for resname in [
+        "Cl",
+        "K",
+        "Na",
+        "Zn",
+        "Br",
+        "Ca",
+        "Mg",
+        "DMS",
+        "GOL",
+        "SO4",
+        "PO4",
+        "ATP",
+        "UNL",
+        "LIG",
+    ]:
         check_for_one_atom_res_clash(st, resname)
 
 
