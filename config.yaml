@@ -13,6 +13,15 @@ gather_xray_data:
   data_directory: "/path/to/xray_data"
   sample_name: "sample123"
 
+exportflow:
+  export_data_directory: "/full/path/to/test_export_flow_20260102"
+  pandda_analyse_directory: "/full/path/to/pandda_analyse"
+  export_list: "export.txt"
+  ground_basename: "pandda-input"
+  changed_basename: "pandda-model"
+  ensemble_basename: "ensemble-model"
+  validate_only: True  
+
 refineflow:
   export_data_directory: "/path/to/export"
   ligand_csv: "/path/to/ligands.csv"
