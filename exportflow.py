@@ -122,7 +122,7 @@ def make_export_dir(dir_dict: dict):
     return dir_dict
 
 @task(name="merge_ensemble", tags=["merge_ensemble_job"])
-def merge_ensemble_dir(dir_dict: dict):
+def merge_ensemble(dir_dict: dict, write_files=True):
     logger = get_run_logger()
     try:
         ground = gemmi.read_structure(str(dir_dict['ground_state'][0]))
@@ -135,10 +135,11 @@ def merge_ensemble_dir(dir_dict: dict):
         )
         em.run()
 
-        # write model/restraint files to avoid passing anything to next task
-        em.acceptor.write_pdb(str(dir_dict['ensemble']))
-        with open(dir_dict['restraints'], 'w') as f:
-            f.write(em.refmac_restraints_to_string())
+        if write_files:
+            # write model/restraint files to avoid passing anything to next task
+            em.acceptor.write_pdb(str(dir_dict['ensemble']))
+            with open(dir_dict['restraints'], 'w') as f:
+                f.write(em.refmac_restraints_to_string())
 
         return dir_dict
 
@@ -160,10 +161,15 @@ def copy_files(dir_dict: dict):
 
 @flow(name="export_flow", task_runner=ConcurrentTaskRunner)
 def export_flow(jobs, **kwargs):
-    validate_output = validate.map(jobs)
-    make_dir_output = make_export_dir.map(validate_output)
-    merge_output = merge_ensemble_dir.map(make_dir_output)
-    copy_output = copy_files.map(merge_output)
+
+    if VALIDATE_ONLY:
+        validate_output = validate.map(jobs)
+        merge_ensemble.map(validate_output, write_files=False)
+    else:
+        validate_output = validate.map(jobs)
+        make_dir_output = make_export_dir.map(validate_output)
+        merge_output = merge_ensemble.map(make_dir_output)
+        copy_output = copy_files.map(merge_output)
 
 
 if __name__ == "__main__":
