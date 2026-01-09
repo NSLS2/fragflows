@@ -107,7 +107,7 @@ def record_message(
 
 
 @task(name="validate", tags=["validate_job"])
-def validate(dir_dict: dict):
+def validate(dir_dict: dict, lig_label: str='UNL'):
     logger = get_run_logger()
     try:
 
@@ -115,11 +115,26 @@ def validate(dir_dict: dict):
         ground = gemmi.read_structure(str(dir_dict["ground_state"][0]))
         changed = gemmi.read_structure(str(dir_dict["changed_state"][0]))
 
+        # chain mismatch check
         ground_chains = set([c.name for m in ground for c in m])
         changed_chains = set([c.name for m in changed for c in m])
 
         if ground_chains != changed_chains:
             raise Exception(f"Mismatching chain names between donor/acceptor states for {dir_dict}")
+
+        # check for clash with placed fragments/ligands
+        ns = gemmi.NeighborSearch(changed, 2.2, 0) # within 2.2A of model 0
+        for nc, chain in enumerate(changed[0]):
+            for nr, res in enumerate(chain):
+                for na, atom in enumerate(res):
+                    if res.name != lig_label:
+                        ns.add_atom(atom, nc, nr, na)
+        lig_atoms = [a for c in changed[0] for r in c for a in r if r.name == lig_label]
+        for atom in lig_atoms:
+            neighbors = ns.find_atoms(atom.pos)
+            if neighbors:
+                raise Exception(f'found clashing atoms near {atom} for {dir_dict}')
+
 
         # water clash
         sync_solvent.check_for_solvent_clash(ground)
