@@ -974,6 +974,7 @@ class EnsembleMerger:
             self._generate_refmac_restraints()
         except Exception as e:
             print(f"caught {e} while merging {self.acceptor.name}")
+            raise
 
 
 # ----
