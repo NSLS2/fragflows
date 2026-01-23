@@ -55,14 +55,12 @@ def build_jobs_list(selected: Optional[set[str]])->list:
             ligand = None
 
         job_dict = {
-            "acceptor": f"{d}-pandda-input.pdb",
-            "donor": f"{d}-pandda-model.pdb",
             "xyzin": f"{d}-{BASENAME}.pdb",
             "xyzout": f"{d}-{BASENAME}_refine",
             "hklin": f"{d}-{BASENAME_HKL}.mtz",
             "hklout": f"{d}-{BASENAME}_refine.mtz",
             "hklout_cif": f"{d}-{BASENAME}-ensemble_refine.reflections.cif",
-            "restraints": f"{d}-{BASENAME}.ff-restraints-{REFINEMENT_PROGRAM}.params",
+            "restraints": f"{d}-{BASENAME}.ff-{REFINEMENT_PROGRAM}.params",
             "ligand": None,
             "sample_dir": str(Path(EXPORT_DATA_DIRECTORY) / Path(d)),
         }
@@ -76,19 +74,6 @@ def build_jobs_list(selected: Optional[set[str]])->list:
         else:
             jobs_list.append(job_dict)
     return jobs_list
-
-@task(name="generate_ensemble", tags=["ensemble_merge"])
-def generate_ensemble(merge_params: dict):
-    acceptor_path = str(Path(merge_params['sample_dir']) / Path(merge_params['acceptor']))
-    donor_path = str(Path(merge_params['sample_dir']) / Path(merge_params['donor']))
-    acceptor = gemmi.read_structure(acceptor_path)
-    donor = gemmi.read_structure(donor_path)
-    em = ensemble_merge.EnsembleMerger(acceptor, donor, occupancy_kwargs={"eps": 3, "min_samples":1})
-    em.run()
-    em.acceptor.write_pdb(str(Path(merge_params['sample_dir']) / Path(merge_params['xyzin']))) #xyzin for refinement
-    with open(str(Path(merge_params['sample_dir']) / Path(merge_params['restraints'])),'w') as f:
-        f.write(em.refmac_restraints_to_string())
-    return
 
 @task(name="run_phenix", tags=["phenix_job"])
 def run_phenix(phenix_params: dict):
@@ -124,8 +109,9 @@ def run_refmac(refine_params: dict):
             print(f"running: {cmd}\nin {refine_params['sample_dir']}")
             # include custom occupancy group restraints
             # additional refmac config parameters for fine tuning
+            print(f"@{refine_params['sample_dir']}/{refine_params['restraints']}\n@{os.getcwd()}/refmac.params".encode())
             stdout = proc.communicate(
-                input=f"@{refine_params['restraints']}\n@{os.getcwd()}/refmac.params".encode()
+                input=f"@{refine_params['sample_dir']}/{refine_params['restraints']}\n@{os.getcwd()}/refmac.params".encode()
             )
     return refine_params
 
@@ -179,10 +165,9 @@ def phenix_flow(jobs, **kwargs):
 
 @flow(name="refmac_flow", task_runner=ConcurrentTaskRunner)
 def refmac_flow(jobs, **kwargs):
-    ensemble_runs = generate_ensemble.map(jobs)
-    run_refmac.map(jobs, wait_for=ensemble_runs)
-    #output3 = mtz2cif.map(output2)
-    #refmac_mmcif_block_rename.map(output3)
+    refmac_output = run_refmac.map(jobs)
+    mtz2cif_output = mtz2cif.map(refmac_output)
+    refmac_mmcif_block_rename.map(mtz2cif_output)
 
 
 if __name__ == "__main__":
