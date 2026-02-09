@@ -6,6 +6,7 @@ import string
 from collections import OrderedDict
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import pairwise_distances
+import itertools
 from .sync_solvent import sync_solvent_labels
 
 
@@ -716,6 +717,19 @@ def generate_occupancy_restraints(merged_residues: list[dict], **kwargs) -> str:
     # ------------------------------------------------------------------#
     lines: list[str] = []
 
+    # define these outside of cluster loop
+    donor_altlocs = set().union(
+        *(
+            mr["donor"]["atom_altlocs"]
+            for mr in merged_residues
+            if mr["donor"] is not None and mr["donor"]["atom_altlocs"]
+        )
+    )
+
+    def periodic_dist(atom1: gemmi.Atom, atom2: gemmi.Atom, cell) -> float:
+        nearest = cell.find_nearest_pbc_image(atom1.pos, atom2.pos)
+        return nearest.dist()
+
     for cluster_label, atom_set in atom_clusters.items():
         # Add all atom lines for this cluster
         group_ids = set()
@@ -737,6 +751,20 @@ def generate_occupancy_restraints(merged_residues: list[dict], **kwargs) -> str:
         is_complete_group = any(
             completeness_map[res_key] for res_key in residues_in_cluster
         )
+
+        # an incomplete group can become complete if incomplete residues from
+        # either state overlap in space
+        if not is_complete_group:
+
+            acceptor_atoms = [a[5] for a in atom_set if a[4] not in donor_altlocs]
+            donor_atoms = [a[5] for a in atom_set if a[4] in donor_altlocs]
+
+            if acceptor_atoms and donor_atoms and any(
+                periodic_dist(a1, a2, acceptor_structure.cell) < 1.8
+                for a1, a2 in itertools.product(acceptor_atoms, donor_atoms)
+            ):
+                is_complete_group = True
+
 
         cluster_completeness = "complete" if is_complete_group else "incomplete"
         lines.append(
