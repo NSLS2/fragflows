@@ -229,8 +229,10 @@ def fill_altlocs(residue: dict, altlocs_to_fill: set = None):
     residue["atom_altlocs"] = atom_altlocs(gemmi_res)
 
 
-def fill_all_residue_altlocs(residues: list[dict]) -> None:
+def fill_all_residue_altlocs(residues: list[dict], base_altloc='A') -> None:
     altlocs_to_fill = max_altlocs(residues)
+    if altlocs_to_fill == {'\x00'}:
+        altlocs_to_fill = set(base_altloc)
     for residue in residues:
         fill_altlocs(residue, altlocs_to_fill)
 
