@@ -720,13 +720,12 @@ def generate_occupancy_restraints(merged_residues: list[dict], **kwargs) -> str:
     lines: list[str] = []
 
     # define these outside of cluster loop
-    donor_altlocs = set().union(
-        *(
-            mr["donor"]["atom_altlocs"]
-            for mr in merged_residues
-            if mr["donor"] is not None and mr["donor"]["atom_altlocs"]
-        )
-    )
+    donor_altlocs = set()
+    for mr in merged_residues:
+        d = mr.get('donor', None)
+        if d:
+            aa = d.get('atom_altlocs') or {}
+            donor_altlocs |= set().union(*aa.values()) if aa else set()
 
     def periodic_dist(atom1: gemmi.Atom, atom2: gemmi.Atom, cell) -> float:
         nearest = cell.find_nearest_pbc_image(atom1.pos, atom2.pos)
