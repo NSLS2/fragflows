@@ -115,9 +115,9 @@ def validate(dir_dict: dict, lig_label: str='UNL'):
         ground = gemmi.read_structure(str(dir_dict["ground_state"][0]))
         changed = gemmi.read_structure(str(dir_dict["changed_state"][0]))
 
-        # chain mismatch check
-        ground_chains = set([c.name for m in ground for c in m])
-        changed_chains = set([c.name for m in changed for c in m])
+        # chain mismatch check, allow mismatch for pure solvent chains
+        ground_chains = {c.name for m in ground for c in m for r in c if r.name != 'HOH'}
+        changed_chains = {c.name for m in changed for c in m for r in c if r.name != 'HOH'}
 
         if ground_chains != changed_chains:
             raise Exception(f"Mismatching chain names between donor/acceptor states for {dir_dict}")

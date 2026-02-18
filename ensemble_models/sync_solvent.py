@@ -169,14 +169,17 @@ def add_solvent_residue_to_chain(
     return
 
 
-def prune_solvents(st: gemmi.Structure, chains_to_keep=["S"]):
+def prune_solvents(st: gemmi.Structure, chains_to_keep=['S']):
+    # iterate through hierarhcy backwards for deletion
     for model in st:
-        for chain in model:
-            for res in chain:
-                if res.name == "HOH" and chain.name not in chains_to_keep:
-                    for i in range(len(res) - 1, -1, -1):
-                        del res[i]
-    st[0]  # refresh references?
+        for chain_idx in range(len(model)-1,-1,-1):
+            chain = model[chain_idx]
+            for res_idx in range(len(chain)-1,-1,-1):
+                if chain[res_idx].name == 'HOH' and chain.name not in chains_to_keep:
+                    del chain[res_idx]
+            if len(chain) == 0:
+                del chain
+    return
 
 
 def check_for_one_atom_res_clash(st: gemmi.Structure, resname: str, cutoff=0.01):
