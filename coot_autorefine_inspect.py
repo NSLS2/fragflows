@@ -4,6 +4,7 @@ from coot_utils import *
 import yaml
 from pathlib import Path
 import os
+import argparse
 
 import gi
 gi.require_version("Gtk", "4.0")
@@ -14,6 +15,25 @@ from gi.repository import Gtk
 # from an exportflow directory that has been autorefined
 # with refmac5. A navigation browser gtk4 window will
 # pop up when loaded. Tested with Coot 1.1.19.
+
+def script_args(script_filename="coot_autorefine_inspect.py"):
+    for idx, a in enumerate(sys.argv):
+        if os.path.basename(a) == script_filename:
+            return sys.argv[idx + 1:]
+    
+    if "--" in sys.argv:
+        return sys.argv[sys.argv.index("--") + 1:]
+    
+    return []
+
+args = script_args()
+
+if len(args) > 1:
+    raise Exception('too many input args')
+
+start_n = 0
+if len(args) == 1:
+    start_n = int(args[0]) - 1
 
 
 with open('config.yaml','r') as f:
@@ -42,7 +62,7 @@ DPHI_COL = "PHDELWT"
 
 # --- 2) State (current index + currently loaded molecule IDs) ---
 _state = {
-    "i": 0,
+    "i": start_n,
     "imol_model": None,
     "imol_2fofc": None,
     "imol_fofc": None,
