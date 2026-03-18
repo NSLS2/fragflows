@@ -19,6 +19,8 @@ from prefect.context import get_run_context
 from datetime import datetime
 import traceback
 import json
+import argparse
+
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -29,6 +31,62 @@ PANDDA_ANALYSE_DIRECTORY = config["exportflow"]["pandda_analyse_directory"]
 EXPORT_FILE_LIST = config["exportflow"]["export_list"]
 with open(EXPORT_FILE_LIST, "r") as f:
     export_list = [line.strip() for line in f]
+
+
+# Command-line argument parsing
+# -------------------------------------------------
+parser = argparse.ArgumentParser(
+    description="Export flow script",
+    add_help=True
+)
+
+parser.add_argument(
+    "--datasets",
+    type=str,
+    default=None,
+    help="Comma-separated list of datasets to process (e.g. d1,d2,d3)"
+)
+
+parser.add_argument(
+    "--eps",
+    type=float,
+    default=3.3,
+    help="epsilon parameter for DBSCAN clustering during occupancy cluster assignment"
+)
+
+parser.add_argument(
+    "--ignore_datasets",
+    type=str,
+    default=None,
+    help="Skip these datasets when exporting"
+)
+
+args, _unknown = parser.parse_known_args()
+
+if args.datasets:
+    requested_datasets = {
+        d.strip() for d in args.datasets.split(",") if d.strip()
+    }
+
+    original_count = len(export_list)
+    export_list = [d for d in export_list if d in requested_datasets]
+
+    print("Filtering datasets via --datasets")
+    print(f"Requested: {sorted(requested_datasets)}")
+    print(f"Kept {len(export_list)} of {original_count} datasets")
+
+    if not export_list:
+        raise ValueError(
+            "No datasets remain after filtering with --datasets."
+        )
+
+if args.ignore_datasets:
+    ignored_datasets = {
+        d.strip() for d in args.ignore_datasets.split(",") if d.strip()
+    }
+    export_list = [d for d in export_list if d not in ignored_datasets]
+    print("ignoring datasets")
+    print(f"Ignored: {sorted(ignored_datasets)}")
 
 GROUND_BASENAME = config["exportflow"]["ground_basename"]
 CHANGED_BASENAME = config["exportflow"]["changed_basename"]
@@ -199,10 +257,10 @@ def merge_ensemble(dir_dict: dict, write_files=True):
         ground = gemmi.read_structure(str(dir_dict["ground_state"][0]))
         changed = gemmi.read_structure(str(dir_dict["changed_state"][0]))
         em = ensemble_merge.EnsembleMerger(
-            ground,
             changed,
+            ground,
             dir_dict["xtal_id"],
-            occupancy_kwargs={"eps": 3.3, "min_samples": 1},
+            occupancy_kwargs={"eps": args.eps, "min_samples": 2},
         )
         em.run()
 
