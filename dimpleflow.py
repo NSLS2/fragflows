@@ -28,15 +28,23 @@ FILTERED_XRAY_CSV = config["dimpleflow"]["filtered_xray_csv"]
 jobs_df = pandas.read_csv(FILTERED_XRAY_CSV)
 jobs_list = []
 
+if 'mtz_path' in jobs_df.columns:
+    xtal_key = 'xtal_name'
+    mtz_key = 'mtz_path'
+
+else:
+    xtal_key = 'xtal_id'
+    mtz_key = 'filepath'
+
 for index, row in jobs_df.iterrows():
     jobs_list.append(
         {
-            "hklout": f"{row['xtal_id']}.dimple.mtz",
-            "xyzout": f"{row['xtal_id']}.dimple.pdb",
+            "hklout": f"{row[xtal_key]}.dimple.mtz",
+            "xyzout": f"{row[xtal_key]}.dimple.pdb",
             "xyzin": REFERENCE_PDB,
-            "hklin": row["filepath"],
-            "sample_dir": str(Path(MODELS_DIRECTORY) / Path(f"{row['xtal_id']}")),
-            "xtal_id": row["xtal_id"],
+            "hklin": row[mtz_key],
+            "sample_dir": str(Path(MODELS_DIRECTORY) / Path(f"{row[xtal_key]}")),
+            "xtal_id": row[xtal_key],
         }
     )
 
