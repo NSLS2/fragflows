@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        <xs:element name="AutoProcContainer">
+                <xs:complexType>
+                        <xs:sequence>
+                                <xs:element name="AutoProcProgramContainer">
+                                        <xs:complexType>
+                                                <xs:sequence>
+                                                        <xs:element name="AutoProcProgram">
+                                                                <xs:complexType>
+                                                                        <xs:sequence>
+                                                                                <xs:element name="processingCommandLine" type="xs:string" />
+                                                                                <xs:element name="processingPrograms" type="xs:string" />
+                                                                        </xs:sequence>
+                                                                </xs:complexType>
+                                                        </xs:element>
+                                                        <xs:element maxOccurs="unbounded" name="AutoProcProgramAttachment">
+                                                                <xs:complexType>
+                                                                        <xs:sequence>
+                                                                                <xs:element name="fileType" type="xs:string" />
+                                                                                <xs:element name="fileName" type="xs:string" />
+                                                                                <xs:element name="filePath" type="xs:string" />
+                                                                        </xs:sequence>
+                                                                </xs:complexType>
+                                                        </xs:element>
+                                                </xs:sequence>
+                                        </xs:complexType>
+                                </xs:element>
+                                <xs:element name="AutoProc">
+                                        <xs:complexType>
+                                                <xs:sequence>
+                                                        <xs:element name="spaceGroup" type="xs:string" />
+                                                        <xs:element name="refinedCell_a" type="xs:decimal" />
+                                                        <xs:element name="refinedCell_b" type="xs:decimal" />
+                                                        <xs:element name="refinedCell_c" type="xs:decimal" />
+                                                        <xs:element name="refinedCell_alpha" type="xs:decimal" />
+                                                        <xs:element name="refinedCell_beta" type="xs:decimal" />
+                                                        <xs:element name="refinedCell_gamma" type="xs:decimal" />
+                                                </xs:sequence>
+                                        </xs:complexType>
+                                </xs:element>
+                                <xs:element name="AutoProcScalingContainer">
+                                        <xs:complexType>
+                                                <xs:sequence>
+                                                        <xs:element name="AutoProcScaling">
+                                                                <xs:complexType>
+                                                                        <xs:sequence>
+                                                                                <xs:element name="recordTimeStamp" />
+                                                                        </xs:sequence>
+                                                                </xs:complexType>
+                                                        </xs:element>
+                                                        <xs:element maxOccurs="unbounded" name="AutoProcScalingStatistics">
+                                                                <xs:complexType>
+                                                                        <xs:sequence>
+                                                                                <xs:element name="scalingStatisticsType" type="xs:string" />
+                                                                                <xs:element name="rMerge" type="xs:decimal" />
+                                                                                <xs:element name="rMeasAllIPlusIMinus" type="xs:decimal" />
+                                                                                <xs:element name="resolutionLimitLow" type="xs:decimal" />
+                                                                                <xs:element name="resolutionLimitHigh" type="xs:decimal" />
+                                                                                <xs:element name="meanIOverSigI" type="xs:decimal" />
+                                                                                <xs:element name="completeness" type="xs:decimal" />
+                                                                                <xs:element name="multiplicity" type="xs:decimal" />
+                                                                                <xs:element name="anomalousCompleteness" type="xs:decimal" />
+                                                                                <xs:element name="anomalousMultiplicity" type="xs:decimal" />
+                                                                                <xs:element name="ccHalf" type="xs:decimal" />
+                                                                                <xs:element name="ccAnomalous" type="xs:decimal" />
+                                                                                <xs:element name="nTotalObservations" type="xs:unsignedInt" />
+                                                                                <xs:element name="nTotalUniqueObservations" type="xs:unsignedInt" />
+                                                                        </xs:sequence>
+                                                                </xs:complexType>
+                                                        </xs:element>
+                                                        <xs:element name="AutoProcIntegrationContainer">
+                                                                <xs:complexType>
+                                                                        <xs:sequence>
+                                                                                <xs:element name="Image">
+                                                                                        <xs:complexType>
+                                                                                                <xs:sequence>
+                                                                                                        <xs:element name="fileName" type="xs:string" />
+                                                                                                        <xs:element name="fileLocation" type="xs:string" />
+                                                                                                </xs:sequence>
+                                                                                        </xs:complexType>
+                                                                                </xs:element>
+                                                                                <xs:element name="AutoProcIntegration">
+                                                                                        <xs:complexType>
+                                                                                                <xs:sequence>
+                                                                                                        <xs:element name="cell_a" type="xs:decimal" />
+                                                                                                        <xs:element name="cell_b" type="xs:decimal" />
+                                                                                                        <xs:element name="cell_c" type="xs:decimal" />
+                                                                                                        <xs:element name="cell_alpha" type="xs:decimal" />
+                                                                                                        <xs:element name="cell_beta" type="xs:decimal" />
+                                                                                                        <xs:element name="cell_gamma" type="xs:decimal" />
+                                                                                                        <xs:element name="refinedXBeam" type="xs:decimal" />
+                                                                                                        <xs:element name="refinedYBeam" type="xs:decimal" />
+                                                                                                </xs:sequence>
+                                                                                        </xs:complexType>
+                                                                                </xs:element>
+                                                                        </xs:sequence>
+                                                                </xs:complexType>
+                                                        </xs:element>
+                                                </xs:sequence>
+                                        </xs:complexType>
+                                </xs:element>
+                        </xs:sequence>
+                </xs:complexType>
+        </xs:element>
+</xs:schema>
