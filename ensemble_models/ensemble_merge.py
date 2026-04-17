@@ -972,7 +972,7 @@ class EnsembleMerger:
 
     def _apply_occupancy(self):
         for residue in self._residues_to_merge:
-            apply_occupancy_policy(residue)
+            apply_occupancy_policy(residue, self.bdc)
 
     def _generate_refmac_dist_restraints(self):
         for residue in self._residues_to_merge:
