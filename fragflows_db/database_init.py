@@ -15,7 +15,6 @@ def init_db(db_path="fragflows.db"):
         future=True
     )
 
-    os.chmod(db_path, 660)
     from fragflows_db.data_models import Base
 
     Base.metadata.create_all(_engine)
