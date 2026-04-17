@@ -51,6 +51,13 @@ parser.add_argument(
     type=str,
     help="if set, will only consider files with this exact space group."
 )
+
+parser.add_argument(
+    "--csv",
+    type=str,
+    help="if set, will save the filtered dataframe to a csv file with this name instead of the default ISO8601 timestamped name"
+)
+
 args = parser.parse_args()
 init_db(args.db)
 
@@ -115,7 +122,10 @@ df["r_mrg"] = df["r_mrg"].astype(np.float64)
 df = df.groupby("xtal_id", group_keys=False).apply(pick_row, include_groups=False)
 
 print(df)
-df.to_csv(
-    f"{SAMPLE_NAME}.{datetime.datetime.now().strftime('%Y%m%d')}.filtered.csv",
-    index=False
-)
+if args.csv:
+    df.to_csv(args.csv, index=False)
+else:
+    df.to_csv(
+        f"{SAMPLE_NAME}.{datetime.datetime.now().strftime('%Y%m%d')}.filtered.csv",
+        index=False
+    )
