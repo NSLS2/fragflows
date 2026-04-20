@@ -61,6 +61,13 @@ parser.add_argument(
     help="Skip these datasets when exporting"
 )
 
+parser.add_argument(
+    "--mix_coeff",
+    type=float,
+    default=0.5,
+    help="proportion of acceptor, donor mix, similar concept to bdc, value of [0,1]"
+)
+
 args, _unknown = parser.parse_known_args()
 
 if args.datasets:
@@ -260,6 +267,7 @@ def merge_ensemble(dir_dict: dict, write_files=True):
             changed,
             ground,
             dir_dict["xtal_id"],
+            bdc=args.mix_coeff,
             occupancy_kwargs={"eps": args.eps, "min_samples": 2},
         )
         em.run()
@@ -336,7 +344,7 @@ if __name__ == "__main__":
     if n_cpus < 30:
         n_chunks = n_cpus - 2
     else:
-        n_chunks = 30
+        n_chunks = 10
     jobs_list = list(dir_dict.values())
     job_chunks = [
         jobs_list[i : i + n_chunks] for i in range(0, len(jobs_list), n_chunks)
