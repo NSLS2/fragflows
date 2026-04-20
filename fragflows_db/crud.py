@@ -1,6 +1,7 @@
 from fragflows_db.data_models import Xtal, HDF5File, MXProcessingResult
 import pandas as pd
 from deposition import load
+import h5py
 
 def get_or_create_xtal(session, name: str) -> Xtal:
     xtal = session.query(Xtal).filter_by(name=name).one_or_none()
@@ -140,4 +141,22 @@ def reflection_file_to_df(df: pd.DataFrame):
         d = load.ispyb_xml_to_dict(row['xml_path'])
         r = [m for m in d['AutoProcContainer.AutoProcProgramContainer.AutoProcProgramAttachment'] if m['fileType'] == 'Result' and m['fileName'].endswith('.mtz')][0]
         df.loc[idx, 'mtz_path'] = f"{r['filePath']}/{r['fileName']}"
+    return df
+
+
+def extract_collection_info_from_hdf5(hdf5_filepath):
+     f = h5py.File(hdf5_filepath)
+     return {
+         'data_collection_date': f['/entry/instrument/detector/detectorSpecific/data_collection_date'][()].decode(),
+         'det_description': f['/entry/instrument/detector/description'][()].decode(),
+         'det_serial_no': f['/entry/instrument/detector/detector_number'][()].decode(),
+         'wavelength': f['/entry/instrument/beam/incident_wavelength'][()],
+     }
+
+def extend_dataframe_collection_info(df: pd.DataFrame):
+    for idx, row in df.iterrows():
+        print(f"fetching collection info from {row['hdf5_path']}...")
+        d = extract_collection_info_from_hdf5(row['hdf5_path'])
+        for key, value in d.items():
+            df.loc[idx, key] = value
     return df

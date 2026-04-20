@@ -15,7 +15,7 @@ import os
 from fragflows_db.ingest import ingest_mx_processing_path
 from fragflows_db.utils import get_xml_paths
 from fragflows_db.database_init import init_db, session_scope
-from fragflows_db.crud import get_mx_processing_results_df, extend_dataframe_mx_stats, reflection_file_to_df
+from fragflows_db.crud import get_mx_processing_results_df, extend_dataframe_mx_stats, reflection_file_to_df, extend_dataframe_collection_info
 import re
 
 with open("config.yaml", "r") as yaml_file:
@@ -51,7 +51,6 @@ parser.add_argument(
     type=str,
     help="if set, will only consider files with this exact space group."
 )
-
 parser.add_argument(
     "--csv",
     type=str,
@@ -59,6 +58,12 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+# initialize database if it doesn't exist, otherwise update with new files
+if not os.path.exists(args.db):
+    print(f"database file {args.db} does not exist, creating new database")
+    args.update = True
+
 init_db(args.db)
 
 if args.update:
@@ -120,6 +125,11 @@ def pick_row(group: pandas.DataFrame)->pandas.Series:
 
 df["r_mrg"] = df["r_mrg"].astype(np.float64)
 df = df.groupby("xtal_id", group_keys=False).apply(pick_row, include_groups=False)
+
+# We have applied the filters based on processing stats, now we will do the more
+# costly operation of extracting collection info from hdf5 files.
+
+df = extend_dataframe_collection_info(df)
 
 print(df)
 if args.csv:

@@ -11,6 +11,13 @@ def ingest_mx_processing_path(session, filepath: str):
     if Path(filepath).is_symlink():
         return  # silently ignore autoPROC symlinks
 
+    filepath = Path(filepath).resolve()
+    
+    if not filepath.exists():
+        raise Exception(f"XML file {filepath} does not exist")
+    
+    filepath = str(filepath)
+    
     filename = Path(filepath).name.lower().split('.')[0]
 
     # Get the directory containing the XSD schema files
@@ -39,6 +46,10 @@ def ingest_mx_processing_path(session, filepath: str):
     hdf5_directory = mx_processing_dict['AutoProcContainer.AutoProcScalingContainer.AutoProcIntegrationContainer.Image.fileLocation']
     hdf5_filename = mx_processing_dict['AutoProcContainer.AutoProcScalingContainer.AutoProcIntegrationContainer.Image.fileName']
     hdf5_path = f'{hdf5_directory}/{hdf5_filename}'
+    hdf5_path = Path(hdf5_path).resolve()
+    if not hdf5_path.exists():
+        raise Exception(f"HDF5 file {hdf5_path} does not exist for XML file {filepath}")
+    hdf5_path = str(hdf5_path)
     xtal_name = Path(mx_processing_dict['AutoProcContainer.AutoProcScalingContainer.AutoProcIntegrationContainer.Image.fileLocation']).parts[-3]
 
     xtal = get_or_create_xtal(session, xtal_name)
