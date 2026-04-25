@@ -49,9 +49,16 @@ def ispyb_xml_to_cif_block(
     high_shell = resolution_shells_to_payload(shells, desired_shell="outerShell")
     reflection_stats_dict = overall_shell | high_shell
     print(reflection_stats_dict)
-    reflection_stats = ReflectionStats(**reflection_stats_dict)
+    if hasattr(ReflectionStats, "model_validate"):
+        reflection_stats = ReflectionStats.model_validate(reflection_stats_dict)
+    else:
+        reflection_stats = ReflectionStats(**reflection_stats_dict)
     out_block = gemmi.cif.Block(blockname)
-    print(reflection_stats.dict())
-    for k, v in reflection_stats.dict(by_alias=True).items():
+    if hasattr(reflection_stats, "model_dump"):
+        payload = reflection_stats.model_dump(by_alias=True)
+    else:
+        payload = reflection_stats.dict(by_alias=True)
+    print(payload)
+    for k, v in payload.items():
         out_block.set_pair(k, v)
     return out_block

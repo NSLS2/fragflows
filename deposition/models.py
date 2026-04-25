@@ -1,4 +1,10 @@
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field
+try:
+    from pydantic import ConfigDict
+    _PYDANTIC_V2 = True
+except ImportError:
+    ConfigDict = None
+    _PYDANTIC_V2 = False
 from typing import Union
 
 
@@ -49,5 +55,9 @@ class ReflectionStats(BaseModel):
     reflns_shell_number_unique_all: Union[str, float] = Field("?", alias="_reflns_shell.number_unique_all")
     reflns_shell_pdbx_CC_star: Union[str, float] = Field("?", alias="_reflns_shell.pdbx_CC_star")
 
-    class Config:
-        allow_population_by_field_name = True
+    if _PYDANTIC_V2:
+        model_config = ConfigDict(populate_by_name=True, extra="ignore")
+    else:
+        class Config:
+            allow_population_by_field_name = True
+            extra = "ignore"
