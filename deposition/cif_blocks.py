@@ -136,9 +136,9 @@ def refinement_cif_to_cif_block(
 def event_map_to_cif_block(
     map_path: str,
     high_res: float,
+    wavelength: str,
     block_name: str = "xxxxBsf",
     details: str = "test event",
-    wavelength: str = "0.9201",
 ) -> gemmi.cif.Block:
 
     # read map
