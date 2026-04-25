@@ -9,7 +9,7 @@ def validate_mtz_columns(mtz: gemmi.Mtz, mtz_columns: list):
     # Ensure that we are adding correct columns
     for column in mtz_columns:
         if column not in mtz.column_labels():
-            raise ValueError(f"Mtz file: {mtz_path} is missing {column} label")
+            raise ValueError(f"Mtz file: {mtz.title} is missing {column} label")
 
 
 def populate_minimal_block_pairs(
@@ -36,7 +36,7 @@ def populate_minimal_block_pairs(
     block.set_pair("_diffrn_radiation_wavelength.id", "1")
     block.set_pair("_diffrn_radiation_wavelength.wavelength", wavelength)
 
-    block.set_pair("_reflns_crystal.id", "1")
+    block.set_pair("_exptl_crystal.id", "1")
     block.set_pair("_reflns_scale.group_code", "1")
 
     block.set_pair("_symmetry.space_group_name_H-M", f'"{spacegroup.hm}"')
@@ -234,7 +234,7 @@ def original_mtz_to_cif_block(
         "K H index_k",
         "L H index_l",
         "? IMEAN J intensity_meas",
-        "& SIGIMEAN Q intensity_sigma_meas",
+        "& SIGIMEAN Q intensity_sigma",
         "? F F F_meas_au",
         "& SIGF Q F_meas_sigma_au",
     ]
