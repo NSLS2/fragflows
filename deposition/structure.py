@@ -1,5 +1,6 @@
 import gemmi
 from .utils import letter_generator
+from collections import defaultdict
 
 
 def fix_formal_charges(func):
@@ -274,3 +275,45 @@ def get_residue(st: gemmi.Structure, chain: gemmi.Chain, seqid: int):
                     if r.seqid.num == seqid:
                         return r
     raise ValueError('residue not found')
+
+
+
+def tweak_occupancy(st: gemmi.Structure, threshold: float=1.0, occ_tweak: float=1e-3):
+    """Tweak occupancy values for atoms in a structure to ensure that they sum to <1.0
+    for any given set of alternate locations (altlocs). Numerical imprecision
+    from refinement mmcif can cause occupancies to sum to slightly above 1.0 which
+    can cause issues with PDB validation. This difference can be as small as machine
+    epsilon for float64.
+
+    Parameters
+    ----------
+    st : gemmi.Structure
+        The molecular structure to process.
+    threshold : float
+        The occupancy sum threshold above which a warning is raised. Default is 1.0 to allow for some numerical imprecision.
+    occ_tweak : float
+        The amount by which to reduce the occupancy of the most occupied atom altloc when the sum exceeds the threshold. Default is 0.001.
+
+    Returns
+    -------
+    None
+        The function modifies the input `st` in place.
+    """
+    for model in st:
+        for chain in model:
+            for residue in chain:
+                atoms_by_name = defaultdict(list)
+
+                for atom in residue:
+                    atoms_by_name[atom.name].append(atom)
+
+                for atoms in atoms_by_name.values():
+                    total_occ = sum(atom.occ for atom in atoms)
+
+                    if total_occ > threshold:
+                        atom_to_adjust = max(atoms, key=lambda atom: atom.occ)
+                        atom_to_adjust.occ -= occ_tweak
+                        atom_to_adjust.occ = max(atom_to_adjust.occ, 0.0)  # the last thing we want is negative occupancy
+                    
+                    if sum(atom.occ for atom in atoms) > threshold:
+                        raise ValueError(f"Occupancy sum for atoms {', '.join(atom.name for atom in atoms)} in residue {residue.name} {residue.seqid} exceeds {threshold} even after tweaking.")
