@@ -317,3 +317,38 @@ def tweak_occupancy(st: gemmi.Structure, threshold: float=1.0, occ_tweak: float=
                     
                     if sum(atom.occ for atom in atoms) > threshold:
                         raise ValueError(f"Occupancy sum for atoms {', '.join(atom.name for atom in atoms)} in residue {residue.name} {residue.seqid} exceeds {threshold} even after tweaking.")
+                    
+
+def resolve_entities(st: gemmi.Structure, one_polymer=True):
+    """Normalize entity assignment and IDs for a Gemmi structure.
+
+    This allows Gemmi deduplication to merge split polymer entities (for example,
+    when chains differ only by modeled vs. unmodeled terminal residues). When the sequence
+    is inferred from the structure by refmac5 when outputing mmcif during refinement,
+    there may be discrepancies in entity assignment if there are multiple chain copies 
+    in the asymmetric unit.
+
+    The workflow performed is:
+    1. Recompute residue entity types and subchain labels.
+    2. Rebuild st.entities from subchains and deduplicate polymers with setup_entities().
+    3. Renumber entity names as numeric strings and relink residue entity IDs.
+
+    Args:
+        st: Input structure modified in place.
+        one_polymer: If True, enforce a single deduplicated polymer entity.
+
+    Raises:
+        NotImplementedError: If one_polymer is False.
+    """
+    if one_polymer:
+        reference_sequence = max([entity.full_sequence for entity in st.entities], key=len)
+        for entity in st.entities:
+            if entity.entity_type == gemmi.EntityType.Polymer:
+                entity.full_sequence = reference_sequence
+
+        st.setup_entities()
+        for i, e in enumerate(st.entities, start=1):
+            e.name = str(i)
+        st.add_entity_ids(overwrite=True)
+    else:
+        raise NotImplementedError("Multiple polymer entities not yet supported")
