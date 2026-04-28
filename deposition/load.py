@@ -45,10 +45,10 @@ def ispyb_xml_to_cif_block(
         "AutoProcContainer.AutoProcScalingContainer.AutoProcScalingStatistics"
     ]
     overall_shell = resolution_shells_to_payload(shells, desired_shell="overall")
-    print(overall_shell)
+    
     high_shell = resolution_shells_to_payload(shells, desired_shell="outerShell")
     reflection_stats_dict = overall_shell | high_shell
-    print(reflection_stats_dict)
+
     if hasattr(ReflectionStats, "model_validate"):
         reflection_stats = ReflectionStats.model_validate(reflection_stats_dict)
     else:
@@ -58,7 +58,7 @@ def ispyb_xml_to_cif_block(
         payload = reflection_stats.model_dump(by_alias=True)
     else:
         payload = reflection_stats.dict(by_alias=True)
-    print(payload)
+
     for k, v in payload.items():
         out_block.set_pair(k, v)
     return out_block
