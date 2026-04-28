@@ -62,9 +62,18 @@ def generate_refinement_table(
             "catalog_id": ligand_df.loc[ligand_df["xtal_id"] == d, "catalog_id"].iloc[
                 0
             ],
-            "ispyb_xml": dataset_df.loc[
-                dataset_df["xtal_id"] == d, "ispyb_xml"
-            ].iloc[0]
+            "xml_path": dataset_df.loc[
+                dataset_df["xtal_id"] == d, "xml_path"
+            ].iloc[0],
+            "data_collection_date": dataset_df.loc[
+                dataset_df["xtal_id"] == d, "data_collection_date"
+            ].iloc[0],
+            "wavelength": dataset_df.loc[
+                dataset_df["xtal_id"] == d, "wavelength"
+            ].iloc[0],
+            "det_serial_no": dataset_df.loc[
+                dataset_df["xtal_id"] == d, "det_serial_no"
+            ].iloc[0],
         }
         result_list.append(result_dict)
 
