@@ -44,7 +44,7 @@ DATASETS = []
 
 for dataset in os.listdir(EXPORT_DIR):
     DATASETS.append(
-        (f"{EXPORT_DIR}/{dataset}/{dataset}-ensemble-model_refine.pdb",
+        (f"{EXPORT_DIR}/{dataset}/{dataset}-ensemble-model_refine.mmcif",
          f"{EXPORT_DIR}/{dataset}/{dataset}-ensemble-model_refine.mtz",
          [str(d) for d in Path(f"{EXPORT_DIR}/{dataset}").glob("*event*.ccp4")],
          dataset)
