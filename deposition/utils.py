@@ -1,5 +1,6 @@
 import string
-
+import pandas as pd
+import pytz
 
 def letter_generator():
     def get_letter(num):
@@ -21,3 +22,13 @@ def flatten_dict(d, parent_key="", sep="."):
         else:
             items.append((new_key, v))
     return dict(items)
+
+def convert_iso_date_to_ymd(date_str: str, target_tz: str) -> str:
+    """Convert an ISO date string to a date string in the format YYYY-MM-DD, adjusting for the specified timezone."""
+
+    dt = pd.to_datetime(date_str)  # Validate the input date string
+
+    if target_tz:
+        dt = dt.tz_convert(pytz.timezone(target_tz))
+
+    return dt.strftime("%Y-%m-%d")
