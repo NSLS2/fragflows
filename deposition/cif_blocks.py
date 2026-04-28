@@ -309,3 +309,86 @@ def dimple_mtz_to_cif_block(
     [block.move_item(j, k) for j, k in zip(idx, [10, 11, 12])]
 
     return block
+
+def deduplicate_cif_loops(
+        source_block: gemmi.cif.Block,
+        target_block: gemmi.cif.Block,
+        reference_tag: str='_entity.id',
+        only_drop: bool = False,
+    ) -> tuple[gemmi.cif.Block, gemmi.cif.Block]:
+
+    """take two cif blocks, a source and target, and merge loops giving preference to source
+    in case of duplicate keys."""
+
+    source_item = source_block.find_loop_item(reference_tag)
+    target_item = target_block.find_loop_item(reference_tag)
+
+    if not only_drop:
+        if source_item is None or target_item is None:
+            raise ValueError("One or both blocks are missing the required loop with reference_tag: " + reference_tag)
+        
+        if not set(source_item.loop.tags).issubset(set(target_item.loop.tags)):
+            raise ValueError("Source loop contains tags that are not present in target loop, cannot merge.")
+        
+        source_item.loop.add_columns([t for t in target_item.loop.tags if t not in source_item.loop.tags], "?")
+
+        if source_item.loop.tags != target_item.loop.tags:
+            print("source loop tags: ",source_item.loop.tags)
+            print("target loop tags: ",target_item.loop.tags)
+            raise ValueError("After adding missing columns, source and target loops have different tags, cannot merge.")
+        
+        idx_to_move = [
+            row_index
+            for row_index, entity_id in enumerate(source_block.find_loop(reference_tag))
+            if entity_id not in target_block.find_loop(reference_tag)
+        ]
+        for row_index in idx_to_move:
+            row = [source_item.loop[row_index,c] for c in range(source_item.loop.width())]
+            target_item.loop.add_row(row)
+
+    # source block without the redundant loop
+    fresh_block = gemmi.cif.Block(source_block.name)
+    for item in source_block:
+        if item.loop and reference_tag in item.loop.tags:
+            continue
+        else:
+            fresh_block.add_item(item)
+
+    return fresh_block, target_block
+
+def prune_empty_loops(block: gemmi.cif.Block) -> gemmi.cif.Block:
+    """remove loops from a cif block that have no rows"""
+    new_block = gemmi.cif.Block(block.name)
+    for item in block:
+        if item.pair:
+            new_block.add_item(item)                     
+        if item.loop and item.loop.length() > 0:
+            new_block.add_item(item)
+    return new_block
+
+def filter_mmcif_categories(block: gemmi.cif.Block, allowed_categories: list[str]) -> gemmi.cif.Block:
+    """remove items from a cif block that do not belong to allowed categories"""
+    new_block = gemmi.cif.Block(block.name)
+    for item in block:
+        if item.pair:
+            category = item.pair[0].split(".")[0] + '.'
+            if category in allowed_categories:
+                new_block.add_item(item)
+        elif item.loop:
+            tags = set(s.split(".")[0] + '.' for s in item.loop.tags)
+            if len(tags) != 1:
+                raise ValueError(
+                    "Error in CIF loop table formatting: found multiple category keys."
+                )
+            category = tags.pop()
+            if category in allowed_categories:
+                new_block.add_item(item)
+        else:
+            raise ValueError("Found CIF item that is neither pair nor loop")
+    return new_block
+
+def prepare_cif_block_for_merging(block: gemmi.cif.Block, allowed_categories: list[str]) -> gemmi.cif.Block:
+    """prepare a cif block for merging by pruning empty loops and filtering categories"""
+    pruned_block = prune_empty_loops(block)
+    filtered_block = filter_mmcif_categories(pruned_block, allowed_categories)
+    return filtered_block
