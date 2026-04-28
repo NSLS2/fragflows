@@ -136,11 +136,19 @@ def extend_dataframe_mx_stats(df: pd.DataFrame):
             df.loc[idx, key] = value
     return df
 
-def reflection_file_to_df(df: pd.DataFrame):
+def mtz_from_xml(xml_filepath: str):
+    d = load.ispyb_xml_to_dict(xml_filepath)
+    r = [m for m in d['AutoProcContainer.AutoProcProgramContainer.AutoProcProgramAttachment'] if m['fileType'] == 'Result' and m['fileName'].endswith('.mtz')][0]
+    return f"{r['filePath']}/{r['fileName']}"
+
+def reflection_file_to_df(
+        df: pd.DataFrame,
+        xml_column_name: str = 'xml_path',
+        mtz_column_name: str = 'mtz_path',
+    ):
     for idx, row in df.iterrows():
-        d = load.ispyb_xml_to_dict(row['xml_path'])
-        r = [m for m in d['AutoProcContainer.AutoProcProgramContainer.AutoProcProgramAttachment'] if m['fileType'] == 'Result' and m['fileName'].endswith('.mtz')][0]
-        df.loc[idx, 'mtz_path'] = f"{r['filePath']}/{r['fileName']}"
+        mtz_filepath = mtz_from_xml(row[xml_column_name])
+        df.loc[idx, mtz_column_name] = mtz_filepath
     return df
 
 
