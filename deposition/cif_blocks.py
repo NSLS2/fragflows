@@ -19,6 +19,7 @@ def populate_minimal_block_pairs(
     wavelength: str,
     details: str,
     cell_precision: int = 4,
+    xtal_id: str = "1",
 ):
 
     # create block and populate header pairs
@@ -30,14 +31,13 @@ def populate_minimal_block_pairs(
     block.set_pair("_cell.angle_gamma", str(np.round(cell.gamma, cell_precision)))
 
     block.set_pair("_diffrn.id", "1")
-    block.set_pair("_diffrn.crystal_id", "1")
+    block.set_pair("_diffrn.crystal_id", xtal_id)
     block.set_pair("_diffrn.details", f'"{details}"')
 
     block.set_pair("_diffrn_radiation_wavelength.id", "1")
     block.set_pair("_diffrn_radiation_wavelength.wavelength", wavelength)
 
-    block.set_pair("_exptl_crystal.id", "1")
-    block.set_pair("_reflns_scale.group_code", "1")
+    block.set_pair("_exptl_crystal.id", xtal_id)
 
     block.set_pair("_symmetry.space_group_name_H-M", f'"{spacegroup.hm}"')
     block.set_pair("_symmetry.Int_Tables_number", f"{spacegroup.number}")
@@ -154,6 +154,7 @@ def event_map_to_cif_block(
     wavelength: str,
     block_name: str = "xxxxBsf",
     details: str = "test event",
+    xtal_id: str = "1",
 ) -> gemmi.cif.Block:
 
     # read map
@@ -168,7 +169,7 @@ def event_map_to_cif_block(
     # create block and populate header pairs
     block = gemmi.cif.Block(block_name)
     populate_minimal_block_pairs(
-        block, sf.unit_cell, ccp4map.grid.spacegroup, wavelength, details
+        block, sf.unit_cell, ccp4map.grid.spacegroup, wavelength, details, xtal_id=xtal_id
     )
 
     block.init_mmcif_loop(
@@ -176,7 +177,6 @@ def event_map_to_cif_block(
         [
             "crystal_id",
             "wavelength_id",
-            "scale_group_code",
             "index_h",
             "index_k",
             "index_l",
@@ -189,8 +189,7 @@ def event_map_to_cif_block(
 
     for k in range(0, len(sf)):
         row = [
-            "1",
-            "1",
+            xtal_id,
             "1",
         ]
 
@@ -213,6 +212,7 @@ def original_mtz_to_cif_block(
     block_name: str = "xxxxAsf",
     details: str = "data from original reflections",
     mtz_columns: list = ["IMEAN", "SIGIMEAN", "F", "SIGF"],
+    xtal_id: str = "1",
 ) -> gemmi.cif.Block:
 
     mtz = gemmi.read_mtz_file(mtz_path)
@@ -259,13 +259,20 @@ def original_mtz_to_cif_block(
 
     # need to add new block pairs and then move them towards top of file
     block.set_pairs(
-        "_diffrn.", {"id": "1", "crystal_id": "1", "details": f'"{details}"'}, raw=True
+        "_diffrn.", {"id": "1", "crystal_id": xtal_id, "details": f'"{details}"'}, raw=True
     )
     idx = [
         block.get_index(k)
         for k in ["_diffrn.id", "_diffrn.crystal_id", "_diffrn.details"]
     ]
     [block.move_item(j, k) for j, k in zip(idx, [10, 11, 12])]
+
+    for item in block:
+        if item.loop and {'_refln'} == set([s.split('.')[0] for s in item.loop.tags]):
+            if "_refln.crystal_id" not in item.loop.tags:
+                item.loop.add_columns(["_refln.crystal_id"], xtal_id)
+            if "_refln.wavelength_id" not in item.loop.tags:
+                item.loop.add_columns(["_refln.wavelength_id"], "1")
 
     return block
 
@@ -277,6 +284,7 @@ def dimple_mtz_to_cif_block(
     details: str = "ground state model xxxx",
     mtz_columns: list = ["F", "SIGF", "FC", "PHIC", "FWT", "PHWT", "FOM", "FreeR_flag"],
     default_rfree_value: np.int32 = 0,
+    xtal_id: str = "1",
 ) -> gemmi.cif.Block:
 
     mtz = gemmi.read_mtz_file(mtz_path)
@@ -315,7 +323,7 @@ def dimple_mtz_to_cif_block(
 
     # need to add new block pairs and then move them towards top of file
     block.set_pairs(
-        "_diffrn.", {"id": "1", "crystal_id": "1", "details": f'"{details}"'}, raw=True
+        "_diffrn.", {"id": "1", "crystal_id": xtal_id, "details": f'"{details}"'}, raw=True
     )
     idx = [
         block.get_index(k)

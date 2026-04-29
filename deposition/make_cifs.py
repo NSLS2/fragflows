@@ -53,6 +53,7 @@ def make_changed_state_sf_cif(
         rblock.cell,
         rblock.spacegroup,
         block_name=f"xxxx{next(letter_gen)}sf",
+        xtal_id=xtal_id,
     )
 
     # wavelength set by original reflection file
@@ -100,6 +101,7 @@ def make_changed_state_sf_cif(
             block_name=f"xxxx{next(letter_gen)}sf",
             wavelength=wl,
             details=diffrn_details_json,
+            xtal_id=xtal_id,
         )
         doc.add_copied_block(event_map_block)
 
