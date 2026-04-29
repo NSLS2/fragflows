@@ -114,6 +114,7 @@ def insert_pair_into_cif_block(block: gemmi.cif.Block, pair_key: str, *args):
 def refinement_cif_to_cif_block(
     refinement_cif_path: str,
     block_name: str = "xxxxsf",
+    xtal_id: str = "1",
     details: str = "data from final ensemble refinement with ligand",
 ) -> gemmi.cif.Block:
 
@@ -127,9 +128,23 @@ def refinement_cif_to_cif_block(
         block,
         "_cell",
         ("_diffrn.id", "1"),
-        ("_diffrn.crystal_id", "1"),
+        ("_diffrn.crystal_id", xtal_id),
         ("_diffrn.details", f'"{details}"'),
     )
+
+    for item in refinement_block:
+        if item.pair and '.crystal_id' in item.pair[0]:
+            if item.pair[1] != xtal_id:
+                raise ValueError(
+                    f"Found inconsistent crystal_id values: {item.pair[1]} vs. {xtal_id}"
+                )
+        if item.loop and {'_refln'} == set([s.split('.')[0] for s in item.loop.tags]):
+            if "_refln.crystal_id" not in item.loop.tags:
+                item.loop.add_columns(["_refln.crystal_id"], xtal_id)
+            if "_refln.wavelength_id" not in item.loop.tags:
+                item.loop.add_columns(["_refln.wavelength_id"], "1")
+
+
     return refinement_block
 
 

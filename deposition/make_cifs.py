@@ -2,7 +2,7 @@ import gemmi
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import string
+import json
 from .cif_blocks import (
     refinement_cif_to_cif_block,
     original_mtz_to_cif_block,
@@ -38,7 +38,10 @@ def make_changed_state_sf_cif(
         ].iloc[0]
     except KeyError as e:
         print(f"caught {e}: missing refinement reflection cif for {xtal_id}")
-    refinement_block = refinement_cif_to_cif_block(REFINEMENT_SF_CIF)
+    refinement_block = refinement_cif_to_cif_block(
+                            REFINEMENT_SF_CIF,
+                            xtal_id=xtal_id
+                        )
     rblock = gemmi.as_refln_blocks(gemmi.cif.read_file(REFINEMENT_SF_CIF))[0]
 
     # original intensity measurements
@@ -82,14 +85,21 @@ def make_changed_state_sf_cif(
             "event_site_y": np.round(y,3),
             "event_site_z": np.round(z,3),
         }
-        diffrn_details_url = urlencode(diffrn_details)
+        diffrn_details_json = f"'{json.dumps(diffrn_details)}'"
+
+        diffrn_crystal_treatment = {
+            "method": "soak",
+            "catalog_id": row.get("catalog_id", "unknown"),
+            "smiles": row.get("smiles", "unknown"),
+            "solvent": "DMSO",
+        }
 
         event_map_block = event_map_to_cif_block(
             EVENT_MAP,
             high_res=high_res,
             block_name=f"xxxx{next(letter_gen)}sf",
             wavelength=wl,
-            details=diffrn_details_url,
+            details=diffrn_details_json,
         )
         doc.add_copied_block(event_map_block)
 
