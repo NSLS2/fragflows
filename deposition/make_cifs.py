@@ -31,6 +31,16 @@ def make_changed_state_sf_cif(
 
     # read data from disk to cif blocks
 
+    row = table1.loc[table1[xtal_id_key] == xtal_id].iloc[0]
+    diffrn_crystal_treatment = {
+            "method": "soak",
+            "catalog_id": row.get("catalog_id", "unknown"),
+            "smiles": row.get("smiles", "unknown"),
+            "solvent": "DMSO",
+        }
+    
+    diffrn_crystal_treatment_json = f"'{json.dumps(diffrn_crystal_treatment)}'"
+
     # main refinement block
     try:
         REFINEMENT_SF_CIF = table1.loc[
@@ -40,7 +50,8 @@ def make_changed_state_sf_cif(
         print(f"caught {e}: missing refinement reflection cif for {xtal_id}")
     refinement_block = refinement_cif_to_cif_block(
                             REFINEMENT_SF_CIF,
-                            xtal_id=xtal_id
+                            xtal_id=xtal_id,
+                            crystal_treatment=diffrn_crystal_treatment_json,
                         )
     rblock = gemmi.as_refln_blocks(gemmi.cif.read_file(REFINEMENT_SF_CIF))[0]
 
@@ -87,13 +98,6 @@ def make_changed_state_sf_cif(
             "event_site_z": np.round(z,3),
         }
         diffrn_details_json = f"'{json.dumps(diffrn_details)}'"
-
-        diffrn_crystal_treatment = {
-            "method": "soak",
-            "catalog_id": row.get("catalog_id", "unknown"),
-            "smiles": row.get("smiles", "unknown"),
-            "solvent": "DMSO",
-        }
 
         event_map_block = event_map_to_cif_block(
             EVENT_MAP,

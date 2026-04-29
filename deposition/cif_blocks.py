@@ -115,6 +115,7 @@ def refinement_cif_to_cif_block(
     refinement_cif_path: str,
     block_name: str = "xxxxsf",
     xtal_id: str = "1",
+    crystal_treatment: str = "?",
     details: str = "data from final ensemble refinement with ligand",
 ) -> gemmi.cif.Block:
 
@@ -129,6 +130,7 @@ def refinement_cif_to_cif_block(
         "_cell",
         ("_diffrn.id", "1"),
         ("_diffrn.crystal_id", xtal_id),
+        ("_diffrn.crystal_treatment", f'"{crystal_treatment}"'),
         ("_diffrn.details", f'"{details}"'),
     )
 
