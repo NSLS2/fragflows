@@ -21,6 +21,7 @@ def populate_minimal_block_pairs(
     cell_precision: int = 4,
     xtal_id: str = "1",
 ):
+    diffrn_id = xtal_id
 
     # create block and populate header pairs
     block.set_pair("_cell.length_a", str(np.round(cell.a, cell_precision)))
@@ -30,7 +31,7 @@ def populate_minimal_block_pairs(
     block.set_pair("_cell.angle_beta", str(np.round(cell.beta, cell_precision)))
     block.set_pair("_cell.angle_gamma", str(np.round(cell.gamma, cell_precision)))
 
-    block.set_pair("_diffrn.id", "1")
+    block.set_pair("_diffrn.id", diffrn_id)
     block.set_pair("_diffrn.crystal_id", xtal_id)
     block.set_pair("_diffrn.details", f'"{details}"')
 
@@ -116,8 +117,10 @@ def refinement_cif_to_cif_block(
     block_name: str = "xxxxsf",
     xtal_id: str = "1",
     crystal_treatment: str = "?",
-    details: str = "data from final ensemble refinement with ligand",
+    details: str = "data from final ensemble refinement",
 ) -> gemmi.cif.Block:
+    
+    diffrn_id = xtal_id
 
     try:
         refinement_cif = gemmi.cif.read_file(refinement_cif_path)
@@ -128,7 +131,7 @@ def refinement_cif_to_cif_block(
     refinement_block = insert_pair_into_cif_block(
         block,
         "_cell",
-        ("_diffrn.id", "1"),
+        ("_diffrn.id", diffrn_id),
         ("_diffrn.crystal_id", xtal_id),
         ("_diffrn.crystal_treatment", f'"{crystal_treatment}"'),
         ("_diffrn.details", f'"{details}"'),
@@ -216,6 +219,8 @@ def original_mtz_to_cif_block(
     mtz_columns: list = ["IMEAN", "SIGIMEAN", "F", "SIGF"],
     xtal_id: str = "1",
 ) -> gemmi.cif.Block:
+    
+    diffrn_id = xtal_id
 
     mtz = gemmi.read_mtz_file(mtz_path)
 
@@ -261,7 +266,7 @@ def original_mtz_to_cif_block(
 
     # need to add new block pairs and then move them towards top of file
     block.set_pairs(
-        "_diffrn.", {"id": "1", "crystal_id": xtal_id, "details": f'"{details}"'}, raw=True
+        "_diffrn.", {"id": diffrn_id, "crystal_id": xtal_id, "details": f'"{details}"'}, raw=True
     )
     idx = [
         block.get_index(k)
@@ -283,7 +288,8 @@ def dimple_mtz_to_cif_block(
     mtz_path: str,
     spacegroup: gemmi.SpaceGroup,
     block_name: str = "xxxxsf",
-    details: str = "ground state model xxxx",
+    crystal_treatment: str = "?",
+    diffrn_details: str = "not refined to convergence",
     mtz_columns: list = ["F", "SIGF", "FC", "PHIC", "FWT", "PHWT", "FOM", "FreeR_flag"],
     default_rfree_value: np.int32 = 0,
     xtal_id: str = "1",
@@ -325,13 +331,21 @@ def dimple_mtz_to_cif_block(
 
     # need to add new block pairs and then move them towards top of file
     block.set_pairs(
-        "_diffrn.", {"id": "1", "crystal_id": xtal_id, "details": f'"{details}"'}, raw=True
+        "_diffrn.", {"id": "1", "crystal_id": xtal_id, "crystal_treatment": f'"{crystal_treatment}"', "details": f'"{diffrn_details}"'}, raw=True
     )
     idx = [
         block.get_index(k)
-        for k in ["_diffrn.id", "_diffrn.crystal_id", "_diffrn.details"]
+        for k in ["_diffrn.id", "_diffrn.crystal_id", "_diffrn.crystal_treatment", "_diffrn.details"]
     ]
-    [block.move_item(j, k) for j, k in zip(idx, [10, 11, 12])]
+    [block.move_item(j, k) for j, k in zip(idx, [10, 11, 12, 13])]
+
+    # add crystal_id and wavelength_id columns to refln loop if not already present
+    for item in block:
+        if item.loop and {'_refln'} == set([s.split('.')[0] for s in item.loop.tags]):
+            if "_refln.crystal_id" not in item.loop.tags:
+                item.loop.add_columns(["_refln.crystal_id"], xtal_id)
+            if "_refln.wavelength_id" not in item.loop.tags:
+                item.loop.add_columns(["_refln.wavelength_id"], "1")
 
     return block
 

@@ -25,6 +25,8 @@ def make_changed_state_sf_cif(
     xtal_id_key: str = "xtal_id",
 ) -> gemmi.cif.Document:
 
+    diffrn_id = xtal_id
+
     doc = gemmi.cif.Document()
     # everything after primary refinement block will be named xxxxAsf, xxxxBsf, etc.
     letter_gen = letter_generator()
@@ -53,6 +55,7 @@ def make_changed_state_sf_cif(
                             xtal_id=xtal_id,
                             crystal_treatment=diffrn_crystal_treatment_json,
                         )
+    
     rblock = gemmi.as_refln_blocks(gemmi.cif.read_file(REFINEMENT_SF_CIF))[0]
 
     # original intensity measurements
@@ -109,6 +112,8 @@ def make_changed_state_sf_cif(
         )
         doc.add_copied_block(event_map_block)
 
+    
+
     return doc
 
 
@@ -129,6 +134,7 @@ def make_changed_state_cif(
     The ensemble cif contains multiple blocks corresponding to ligand and/or ion definitions
     after the atomic model. These definitions are included in the final cif document.
     """
+    diffrn_id = xtal_id
 
     print(xtal_id)
     row = table1.loc[table1[xtal_id_key] == xtal_id].iloc[0]
@@ -177,6 +183,15 @@ def make_changed_state_cif(
 
     # information from template cif
     template_block = gemmi.cif.read_file(template_path).sole_block()
+
+    # update .crystal_id pairs from template block
+    crystal_id = row.get(xtal_id_key, None)
+    if pd.isna(crystal_id) or str(crystal_id).strip() == "":
+        raise ValueError(
+            f"Missing or empty '{xtal_id_key}' for xtal_id '{xtal_id}' in refinement table row"
+        )
+    template_block.set_pair("_exptl_crystal_grow.crystal_id", str(crystal_id))
+    template_block.set_pair("_diffrn.crystal_id", str(crystal_id))
 
     # we need to resolve entity and entity_poly duplications
     # the template_block is modified in place, sblock returns a modified copy because we needed
@@ -229,15 +244,15 @@ def make_changed_state_cif(
     #if "ensemble" not in sblock.name:
     #    raise ValueError("input does not appear to be pandda ensemble model")
 
-    #for x in sblock.get_mmcif_category_names():
-    #    pair_key = f"{x}entry_id"
-    #    pair = sblock.find_value(pair_key)
-    #    if pair is not None:
-    #        sblock.set_pair(pair_key, block_name)
+    for x in sblock.get_mmcif_category_names():
+        pair_key = f"{x}entry_id"
+        pair = sblock.find_value(pair_key)
+        if pair is not None:
+            sblock.set_pair(pair_key, block_name)
 
     # update block name
-    #sblock.name = block_name
-    #sblock.set_pair("_entry.id", block_name)
+    sblock.name = block_name
+    sblock.set_pair("_entry.id", block_name)
 
 
 
@@ -260,6 +275,18 @@ def make_changed_state_cif(
     for item in sblock:
         template_block.add_item(item)
 
+    for item in template_block:
+        if item.pair:
+            if 'pdbx_diffrn_id' == item.pair[0].split('.')[-1] or 'diffrn_id' == item.pair[0].split('.')[-1]:
+                template_block.set_pair(item.pair[0], diffrn_id)
+            elif '_diffrn.id' == item.pair[0]:
+                template_block.set_pair(item.pair[0], diffrn_id)
+            elif '_exptl_crystal_grow.crystal_id' == item.pair[0]:
+                template_block.set_pair(item.pair[0], crystal_id)
+            elif '_diffrn.crystal_id' == item.pair[0]:
+                template_block.set_pair(item.pair[0], crystal_id)
+
+    template_block.name = block_name
     doc.add_copied_block(template_block)
 
     for block in sblock_metadata_blocks:
