@@ -12,25 +12,31 @@ import os
 import numpy as np
 from PIL import ImageDraw, ImageFont, Image
 import time
-from urllib.parse import parse_qs
+import json
 
 
 def get_events(sf):
     doc = gemmi.cif.read_file(sf)
     events = []
     for block, rblock in zip(doc, gemmi.as_refln_blocks(gemmi.cif.read_file(sf))):
-        s = block.find_pair("_diffrn.details")[-1]
-
         try:
-            s = gemmi.cif.as_string(block.find_pair("_diffrn.details")[-1])
-            if "event_map" in s:
-                parsed_s = parse_qs(s)
+            details = block.find_value("_diffrn.details")
+            if details is None:
+                continue
+
+            s = gemmi.cif.as_string(details).strip()
+            # _diffrn.details may be stored with an extra wrapping quote layer.
+            if len(s) >= 2 and s[0] == s[-1] and s[0] in ("'", '"'):
+                s = s[1:-1]
+
+            parsed_s = json.loads(s)
+            if "event_map" in str(parsed_s.get("ligand_evidence", "")):
                 events.append(
                     {
                         "event": rblock,
-                        "x": parsed_s["event_site_x"],
-                        "y": parsed_s["event_site_y"],
-                        "z": parsed_s["event_site_z"],
+                        "x": float(parsed_s["event_site_x"]),
+                        "y": float(parsed_s["event_site_y"]),
+                        "z": float(parsed_s["event_site_z"]),
                     }
                 )
 
@@ -117,11 +123,11 @@ def write_image(ligand: dict, dataset: str, group_dir: str, out_dir=os.getcwd())
         del cm
         gc.collect()
         cx(session, f"open {st}")
-        cx(session, f"hide ions")
+        cx(session, "hide #1 atoms")
+        cx(session, f"show /{ligand['chain']}:{ligand['seqid']} atoms")
         cx(session, f"select /{ligand['chain']}:{ligand['seqid']}")
         cx(session, "view sel")
-        cx(session, "color #1 gray target ra")
-        cx(session, "color #1 byelement target a")
+        cx(session, f"color /{ligand['chain']}:{ligand['seqid']} byelement")
         cx(session, "set bgColor white")
         cx(session, f"open {tmpdir}/fwt.ccp4")
         cx(session, f"vop cover #1 #2 atomBox sel")
@@ -164,7 +170,7 @@ def write_images(dataset, group_dir, out_dir=os.getcwd()):
         write_image(ligand, dataset, group_dir, out_dir=out_dir)
 
 
-group_dir = "../test_group_deposition_20260424"
+group_dir = "../test_group_deposition_20260430"
 
 
 datasets = [
