@@ -10,9 +10,8 @@ from .cif_blocks import (
     deduplicate_cif_loops,
     prepare_cif_block_for_merging,
 )
-from .structure import remove_ground_state
+
 from .utils import letter_generator
-from urllib.parse import urlencode
 from .load import ispyb_xml_to_cif_block
 from .beamline_parameters import BEAMLINE_PARAMETERS
 from .utils import convert_iso_date_to_ymd
@@ -110,9 +109,7 @@ def make_changed_state_sf_cif(
             details=diffrn_details_json,
             xtal_id=xtal_id,
         )
-        doc.add_copied_block(event_map_block)
-
-    
+        doc.add_copied_block(event_map_block)   
 
     return doc
 
@@ -219,6 +216,7 @@ def make_changed_state_cif(
     if not Path(rstats_xml).exists():
         raise ValueError(f"missing ispyb xml file at {rstats_xml} for {xtal_id}")
     
+    print(rstats_xml)
     rstats_block = ispyb_xml_to_cif_block(rstats_xml)
 
     for idx, item in enumerate(rstats_block):
