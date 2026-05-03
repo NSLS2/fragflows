@@ -38,8 +38,6 @@ def populate_minimal_block_pairs(
     block.set_pair("_diffrn_radiation_wavelength.id", "1")
     block.set_pair("_diffrn_radiation_wavelength.wavelength", wavelength)
 
-    block.set_pair("_exptl_crystal.id", xtal_id)
-
     block.set_pair("_symmetry.space_group_name_H-M", f'"{spacegroup.hm}"')
     block.set_pair("_symmetry.Int_Tables_number", f"{spacegroup.number}")
 
