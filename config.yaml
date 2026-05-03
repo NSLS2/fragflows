@@ -27,3 +27,10 @@ refineflow:
   ligand_csv: "/path/to/ligands.csv"
   basename: "ensemble-model"
   basename_hkl: "pandda-input"
+
+groupdepflow:
+  groupdep_directory: ""
+  refinement_csv: ""
+  event_csv: ""
+  template_cif: ""
+  ligand_csv: ""
