@@ -1,5 +1,6 @@
 import gemmi
 import numpy as np
+from collections import defaultdict
 
 # map mtz column labels from various programs to pdbx refln compliant names
 # https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/
@@ -429,3 +430,51 @@ def prepare_cif_block_for_merging(block: gemmi.cif.Block, allowed_categories: li
     pruned_block = prune_empty_loops(block)
     filtered_block = filter_mmcif_categories(pruned_block, allowed_categories)
     return filtered_block
+
+
+def update_entity_id_loops(block: gemmi.cif.Block, exclude_polymer_entity_ids: bool=True):
+
+    entity_id_to_asym = defaultdict(list)
+    for entity_id, asym_id in zip(block.find_loop('_struct_asym.entity_id'), block.find_loop('_struct_asym.id')):
+        entity_id_to_asym[entity_id].append(asym_id)
+
+    asym_id_to_resname = defaultdict(list)
+    for asym_id, resname in zip(block.find_loop('_atom_site.label_asym_id'), block.find_loop('_atom_site.label_comp_id')):
+        asym_id_to_resname[asym_id].append(resname)
+
+    entity_id_to_exclude = [entity_id for entity_id, entity_type in zip(block.find_loop('_entity.id'), block.find_loop('_entity.type')) if entity_type == 'polymer'] if exclude_polymer_entity_ids else []
+
+    for entity_id in entity_id_to_exclude:
+        entity_id_to_asym.pop(entity_id, None)
+    
+    entity_id_to_resname = {}
+    for entity_id, asym_ids in entity_id_to_asym.items():
+        resname = set().union(*[r for r in [asym_id_to_resname[asym_id] for asym_id in asym_ids]])
+        if len(resname) > 1:
+            # could be a more helpful exception message
+            raise ValueError(f"for {block} found multiple labels for asym, should be unique")
+        entity_id_to_resname[entity_id] = resname.pop()
+
+
+    # will need updating for each project
+    resname_to_description = {
+        'HOH': {'src_method': 'nat', 'pdbx_description': 'water'},
+        'CA': {'src_method': 'syn', 'pdbx_description': 'CALCIUM ION'},
+        'CL': {'src_method': 'syn', 'pdbx_description': 'CHLORIDE ION'},
+        'DMS': {'src_method': 'syn', 'pdbx_description': 'DIMETHYL SULFOXIDE'},
+        'NA': {'src_method': 'syn', 'pdbx_description': 'SODIUM ION'},
+        'UNL': {'src_method': 'syn', 'pdbx_description': 'LIGAND'},
+        'MG': {'src_method': 'syn', 'pdbx_description': 'MAGNESIUM ION'},
+    }
+
+    #update the entity_id table src_method and pdbx_description for non-polymer
+    loop = block.find_loop_item('_entity.id').loop
+    src_method_idx = loop.tags.index('_entity.src_method')
+    pdbx_description_idx = loop.tags.index('_entity.pdbx_description')
+    type_idx = loop.tags.index('_entity.type')
+    print(entity_id_to_resname)
+    for i in range(loop.length()):
+        entity_id = loop[i, 0]
+        if loop[i, type_idx] != 'polymer':
+            loop[i, src_method_idx] = resname_to_description[entity_id_to_resname[entity_id]]['src_method']
+            loop[i, pdbx_description_idx] = resname_to_description[entity_id_to_resname[entity_id]]['pdbx_description']
