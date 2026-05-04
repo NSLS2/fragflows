@@ -170,11 +170,7 @@ def make_changed_state_cif(
             '_refine.',
             '_refine_ls_shell.',
             '_refine_ls_restr.',
-            '_ccp4_form_factor.',
             '_atom_type.',
-            '_ccp4_reflns_twin.',
-            '_ccp4_refine_ls.',
-            '_ccp4_refine.',
         ]
     )
 
