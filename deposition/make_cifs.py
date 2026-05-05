@@ -82,7 +82,6 @@ def make_changed_state_sf_cif(
     # refinement_block
     refinement_block.set_pair("_diffrn_radiation_wavelength.id", "1")
     refinement_block.set_pair("_diffrn_radiation_wavelength.wavelength", f"{wl}")
-    refinement_block.move_item(-3, -1)
     doc.add_copied_block(refinement_block)
 
     # intensity block
