@@ -12,6 +12,8 @@ from validation.cif_checks import (
     map_ligands_to_events,
     soaked_compound_check,
 )
+from collections import defaultdict
+import os
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -54,6 +56,31 @@ def run_assemble_group_changed_state_cifs(only_validate: bool = False):
         map_ligands_to_events(cif_path, sf_cif_path)
         soaked_compound_check(sf_cif_path, ligand_df)
 
+def create_group_dep_index(group_dep_dir: str):
+    f_index = defaultdict(dict)
+    group_dep_path = Path(group_dep_dir)
+
+    for f in sorted(group_dep_path.glob("*.cif")):
+        name = f.name
+        if name.endswith("-sf.cif"):
+            k = name[:-7]
+            f_index[k]["sf"] = name
+        else:
+            k = name[:-4]
+            f_index[k]["model"] = name
+
+    missing = [
+        k for k, v in f_index.items() if "model" not in v or "sf" not in v
+    ]
+    if missing:
+        raise ValueError(f"missing model/sf CIF pair(s) for: {', '.join(sorted(missing))}")
+
+    index_path = group_dep_path / "index.txt"
+    with open(index_path, "w") as i:
+        for k in sorted(f_index):
+            v = f_index[k]
+            i.writelines(f"label: {k}\nmodel: {v['model']}\nsf: {v['sf']}\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -64,3 +91,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     run_assemble_group_changed_state_cifs(only_validate=args.validate)
+    create_group_dep_index(GROUP_DEP_DIR)
