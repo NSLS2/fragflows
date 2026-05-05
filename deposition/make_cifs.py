@@ -9,7 +9,8 @@ from .cif_blocks import (
     event_map_to_cif_block,
     deduplicate_cif_loops,
     prepare_cif_block_for_merging,
-    update_entity_id_loops
+    update_entity_id_loops,
+    insert_pair_into_cif_block,
 )
 
 from .utils import letter_generator
@@ -173,6 +174,14 @@ def make_changed_state_cif(
             '_atom_type.',
         ]
     )
+
+    # insert default cross-validation method to metadata block
+    sblock_metadata_block = insert_pair_into_cif_block(
+                                sblock_metadata_block,
+                                "_refine",
+                                ("_refine.pdbx_ls_cross_valid_method", "THROUGHOUT"),
+                                ("_refine.pdbx_method_to_determine_struct", "\"MOLECULAR REPLACEMENT\""),
+                            )
 
     # information from template cif
     template_block = gemmi.cif.read_file(template_path).sole_block()

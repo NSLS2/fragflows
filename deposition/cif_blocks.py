@@ -45,7 +45,7 @@ def populate_minimal_block_pairs(
     return
 
 
-def insert_pair_into_cif_block(block: gemmi.cif.Block, pair_key: str, *args):
+def insert_pair_into_cif_block(block: gemmi.cif.Block, pair_key: str, *args)->gemmi.cif.Block:
     """
     Inserts new key-value pairs into a CIF block after a specified category.
 
