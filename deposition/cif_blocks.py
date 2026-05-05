@@ -374,12 +374,12 @@ def deduplicate_cif_loops(
             print("source loop tags: ",source_item.loop.tags)
             print("target loop tags: ",target_item.loop.tags)
             raise ValueError("After adding missing columns, source and target loops have different tags, cannot merge.")
-        
         idx_to_move = [
             row_index
             for row_index, entity_id in enumerate(source_block.find_loop(reference_tag))
             if entity_id not in target_block.find_loop(reference_tag)
         ]
+
         for row_index in idx_to_move:
             row = [source_item.loop[row_index,c] for c in range(source_item.loop.width())]
             target_item.loop.add_row(row)
@@ -472,9 +472,11 @@ def update_entity_id_loops(block: gemmi.cif.Block, exclude_polymer_entity_ids: b
     src_method_idx = loop.tags.index('_entity.src_method')
     pdbx_description_idx = loop.tags.index('_entity.pdbx_description')
     type_idx = loop.tags.index('_entity.type')
-    print(entity_id_to_resname)
-    for i in range(loop.length()):
-        entity_id = loop[i, 0]
-        if loop[i, type_idx] != 'polymer':
+    entity_id_idx = loop.tags.index('_entity.id')
+
+    for i in range(loop.length()): #cannot assume sequential entity ids
+        entity_type = loop[i, type_idx]
+        if entity_type != 'polymer':
+            entity_id = loop[i, entity_id_idx]
             loop[i, src_method_idx] = resname_to_description[entity_id_to_resname[entity_id]]['src_method']
             loop[i, pdbx_description_idx] = resname_to_description[entity_id_to_resname[entity_id]]['pdbx_description']
