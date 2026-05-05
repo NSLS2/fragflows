@@ -458,13 +458,13 @@ def update_entity_id_loops(block: gemmi.cif.Block, exclude_polymer_entity_ids: b
 
     # will need updating for each project
     resname_to_description = {
-        'HOH': {'src_method': 'nat', 'pdbx_description': 'water'},
-        'CA': {'src_method': 'syn', 'pdbx_description': 'CALCIUM ION'},
-        'CL': {'src_method': 'syn', 'pdbx_description': 'CHLORIDE ION'},
-        'DMS': {'src_method': 'syn', 'pdbx_description': 'DIMETHYL SULFOXIDE'},
-        'NA': {'src_method': 'syn', 'pdbx_description': 'SODIUM ION'},
-        'UNL': {'src_method': 'syn', 'pdbx_description': 'LIGAND'},
-        'MG': {'src_method': 'syn', 'pdbx_description': 'MAGNESIUM ION'},
+        'HOH': {'src_method': 'nat', 'pdbx_description': "water"},
+        'CA': {'src_method': 'syn', 'pdbx_description': "\"CALCIUM ION\""},
+        'CL': {'src_method': 'syn', 'pdbx_description': "\"CHLORIDE ION\""},
+        'DMS': {'src_method': 'syn', 'pdbx_description': "\"DIMETHYL SULFOXIDE\""},
+        'NA': {'src_method': 'syn', 'pdbx_description': "\"SODIUM ION\""},
+        'UNL': {'src_method': 'syn', 'pdbx_description': "LIGAND"},
+        'MG': {'src_method': 'syn', 'pdbx_description': "\"MAGNESIUM ION\""},
     }
 
     #update the entity_id table src_method and pdbx_description for non-polymer
@@ -480,3 +480,4 @@ def update_entity_id_loops(block: gemmi.cif.Block, exclude_polymer_entity_ids: b
             entity_id = loop[i, entity_id_idx]
             loop[i, src_method_idx] = resname_to_description[entity_id_to_resname[entity_id]]['src_method']
             loop[i, pdbx_description_idx] = resname_to_description[entity_id_to_resname[entity_id]]['pdbx_description']
+
