@@ -11,6 +11,7 @@ from .cif_blocks import (
     prepare_cif_block_for_merging,
     update_entity_id_loops,
     insert_pair_into_cif_block,
+    convert_cif_pairs_to_loop,
 )
 
 from .utils import letter_generator
@@ -174,6 +175,9 @@ def make_changed_state_cif(
             '_atom_type.',
         ]
     )
+
+    # we need to populate this with some additional info about processing pipeline
+    sblock_metadata_block = convert_cif_pairs_to_loop(sblock_metadata_block, '_software')
 
     # insert default cross-validation method to metadata block
     sblock_metadata_block = insert_pair_into_cif_block(

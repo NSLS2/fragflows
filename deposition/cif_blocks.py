@@ -481,3 +481,26 @@ def update_entity_id_loops(block: gemmi.cif.Block, exclude_polymer_entity_ids: b
             loop[i, src_method_idx] = resname_to_description[entity_id_to_resname[entity_id]]['src_method']
             loop[i, pdbx_description_idx] = resname_to_description[entity_id_to_resname[entity_id]]['pdbx_description']
 
+
+def convert_cif_pairs_to_loop(block: gemmi.cif.Block, category: str) -> gemmi.cif.Block:
+    """convert pairs in a cif block that belong to a specified category into a loop"""
+
+    existing_loop_tags = set().union(*[set(item.loop.tags) for item in block if item.loop])
+    if any([category==tag.split('.')[0] for tag in existing_loop_tags]):
+        raise ValueError(f"Block already contains loop items from category {category}")
+
+    new_block = gemmi.cif.Block(block.name)
+    loop_tags = []
+    loop_values = []
+    
+    for item in block:
+        if item.pair and item.pair[0].split('.')[0] == category:
+            loop_tags.append(item.pair[0].split('.')[1])
+            loop_values.append(item.pair[1])
+        else:
+            new_block.add_item(item)
+    if loop_tags:
+        new_block.init_mmcif_loop(category, loop_tags)
+        loop = new_block.find_loop(f"{category}.{loop_tags[0]}").get_loop()
+        loop.add_row([str(v) for v in loop_values])
+    return new_block
