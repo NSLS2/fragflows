@@ -19,6 +19,8 @@ from .load import ispyb_xml_to_cif_block
 from .beamline_parameters import BEAMLINE_PARAMETERS
 from .utils import convert_iso_date_to_ymd
 from .structure import tweak_occupancy, resolve_entities
+from .pipeline_programs import xml_path_to_pipeline_programs
+
 
 def make_changed_state_sf_cif(
     table1: pd.DataFrame,
@@ -176,9 +178,6 @@ def make_changed_state_cif(
         ]
     )
 
-    # we need to populate this with some additional info about processing pipeline
-    sblock_metadata_block = convert_cif_pairs_to_loop(sblock_metadata_block, '_software')
-
     # insert default cross-validation method to metadata block
     sblock_metadata_block = insert_pair_into_cif_block(
                                 sblock_metadata_block,
@@ -226,6 +225,26 @@ def make_changed_state_cif(
     rstats_xml = row["xml_path"]
     if not Path(rstats_xml).exists():
         raise ValueError(f"missing ispyb xml file at {rstats_xml} for {xtal_id}")
+    
+    # software table updates
+    # we need to populate this with some additional info about processing pipeline
+    sblock_metadata_block = convert_cif_pairs_to_loop(sblock_metadata_block, '_software')
+
+    # extract pipeline programs as list[dict] from ispyb xml and insert into template block
+    software_item = sblock_metadata_block.find_loop_item("_software.pdbx_ordinal")
+    software_tags = software_item.loop.tags if software_item else []
+    pdbx_ordinal = int(max(sblock_metadata_block.find_loop("_software.pdbx_ordinal"))) + 1 if software_item else 1
+    for pipeline_program in xml_path_to_pipeline_programs(rstats_xml):
+        field_map = {f"{'_software'}.{k}": v for k, v in pipeline_program.items()} | {"_software.pdbx_ordinal": str(pdbx_ordinal)}
+        values = []
+        for tag in software_tags:
+            if tag in field_map:
+                values.append(field_map[tag])
+            else:
+                values.append("?")
+        pdbx_ordinal += 1
+        software_item.loop.add_row(values)
+    #print(xml_path_to_pipeline_programs(rstats_xml))
     
     print(rstats_xml)
     rstats_block = ispyb_xml_to_cif_block(rstats_xml)
