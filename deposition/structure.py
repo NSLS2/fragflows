@@ -371,5 +371,8 @@ def resolve_entities(st: gemmi.Structure, one_polymer=True):
         for i, e in enumerate(st.entities, start=1):
             e.name = str(i)
         st.add_entity_ids(overwrite=True)
+        empty_entity_idx = [idx for idx, e in enumerate(st.entities) if len(e.subchains) == 0]
+        for i in reversed(empty_entity_idx):
+            del st.entities[i]
     else:
         raise NotImplementedError("Multiple polymer entities not yet supported")

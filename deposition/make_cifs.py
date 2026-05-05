@@ -9,6 +9,7 @@ from .cif_blocks import (
     event_map_to_cif_block,
     deduplicate_cif_loops,
     prepare_cif_block_for_merging,
+    update_entity_id_loops
 )
 
 from .utils import letter_generator
@@ -137,6 +138,7 @@ def make_changed_state_cif(
     row = table1.loc[table1[xtal_id_key] == xtal_id].iloc[0]
     structure_cif = row["refined_structure_file"]
     ensemble_structure = gemmi.read_structure(structure_cif)
+
     n_atoms = len([a for m in ensemble_structure for c in m for r in c for a in r])
     tweak_occupancy(ensemble_structure)
     resolve_entities(ensemble_structure)
@@ -145,7 +147,6 @@ def make_changed_state_cif(
         raise ValueError("number of atoms changed, something went wrong")
     
     sblock = ensemble_structure.make_mmcif_block()
-
     sblock = prepare_cif_block_for_merging(
         sblock,
         allowed_categories=[
@@ -159,8 +160,7 @@ def make_changed_state_cif(
             '_atom_site.'
         ]
     )
-
-
+    
     sblock_metadata_blocks = gemmi.cif.read_file(structure_cif)
     sblock_metadata_block = sblock_metadata_blocks[0]
     sblock_metadata_block = prepare_cif_block_for_merging(
@@ -190,7 +190,9 @@ def make_changed_state_cif(
     # the template_block is modified in place, sblock returns a modified copy because we needed
     # to drop loops.
 
-    sblock, template_block = deduplicate_cif_loops(sblock, template_block, reference_tag='_entity.id')
+    sblock, template_block = deduplicate_cif_loops(
+        sblock, template_block, reference_tag='_entity.id'
+    )
     sblock, template_block = deduplicate_cif_loops(
         sblock, template_block, reference_tag='_entity_poly.entity_id', only_drop=True
     )
@@ -280,6 +282,7 @@ def make_changed_state_cif(
             elif '_diffrn.crystal_id' == item.pair[0]:
                 template_block.set_pair(item.pair[0], crystal_id)
 
+    update_entity_id_loops(template_block)
     template_block.name = block_name
     doc.add_copied_block(template_block)
 
