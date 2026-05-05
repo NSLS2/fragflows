@@ -32,7 +32,7 @@ def make_changed_state_sf_cif(
     diffrn_id = xtal_id
 
     doc = gemmi.cif.Document()
-    # everything after primary refinement block will be named xxxxAsf, xxxxBsf, etc.
+    # everything after primary refinement block will be named XXXXAsf, XXXXBsf, etc.
     letter_gen = letter_generator()
 
     # read data from disk to cif blocks
@@ -70,7 +70,7 @@ def make_changed_state_sf_cif(
         REFLECTION_DATA,
         rblock.cell,
         rblock.spacegroup,
-        block_name=f"xxxx{next(letter_gen)}sf",
+        block_name=f"XXXX{next(letter_gen)}sf",
         xtal_id=xtal_id,
     )
 
@@ -109,7 +109,7 @@ def make_changed_state_sf_cif(
         event_map_block = event_map_to_cif_block(
             EVENT_MAP,
             high_res=high_res,
-            block_name=f"xxxx{next(letter_gen)}sf",
+            block_name=f"XXXX{next(letter_gen)}sf",
             wavelength=wl,
             details=diffrn_details_json,
             xtal_id=xtal_id,
@@ -125,7 +125,7 @@ def make_changed_state_cif(
     template_path: str,
     ligand_df: pd.DataFrame,
     block_append_identifier: str = "comp_",
-    block_name: str = "xxxx",
+    block_name: str = "XXXX",
     xtal_id_key: str = "xtal_id",
 ):
     """This function will need information from the template cif file.
@@ -332,7 +332,7 @@ def assemble_group_changed_state_cifs(
         ligand_table: pd.DataFrame,
         xtal_id_key: str = "xtal_id",
         block_append_identifier: str = "comp_",
-        block_name: str = "xxxx",
+        block_name: str = "XXXX",
 ):
     xtal_ids = list(refinement_table[xtal_id_key])
     if len(set(xtal_ids)) != len(xtal_ids):

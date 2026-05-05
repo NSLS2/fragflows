@@ -113,7 +113,7 @@ def insert_pair_into_cif_block(block: gemmi.cif.Block, pair_key: str, *args)->ge
 
 def refinement_cif_to_cif_block(
     refinement_cif_path: str,
-    block_name: str = "xxxxsf",
+    block_name: str = "XXXXsf",
     xtal_id: str = "1",
     crystal_treatment: str = "?",
     details: str = "data from final ensemble refinement",
@@ -156,7 +156,7 @@ def event_map_to_cif_block(
     map_path: str,
     high_res: float,
     wavelength: str,
-    block_name: str = "xxxxBsf",
+    block_name: str = "XXXXBsf",
     details: str = "test event",
     xtal_id: str = "1",
 ) -> gemmi.cif.Block:
@@ -213,7 +213,7 @@ def original_mtz_to_cif_block(
     mtz_path: str,
     cell: gemmi.UnitCell,
     spacegroup: gemmi.SpaceGroup,
-    block_name: str = "xxxxAsf",
+    block_name: str = "XXXXAsf",
     details: str = "data from original reflections",
     mtz_columns: list = ["IMEAN", "SIGIMEAN", "F", "SIGF"],
     xtal_id: str = "1",
@@ -286,7 +286,7 @@ def original_mtz_to_cif_block(
 def dimple_mtz_to_cif_block(
     mtz_path: str,
     spacegroup: gemmi.SpaceGroup,
-    block_name: str = "xxxxsf",
+    block_name: str = "XXXXsf",
     crystal_treatment: str = "?",
     diffrn_details: str = "not refined to convergence",
     mtz_columns: list = ["F", "SIGF", "FC", "PHIC", "FWT", "PHWT", "FOM", "FreeR_flag"],
