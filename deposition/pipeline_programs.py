@@ -10,6 +10,7 @@ PIPELINE_PARAMETERS = {
             "location": "http://www.globalphasing.com/autoproc/",
         },
         {"name": "Aimless", "classification": "\"data scaling\""},
+        {"name": "XDS", "classification": "\"data reduction\""},
     ],
     "fast_dp": [
         {"name": "FAST_DP", "classification": "\"data reduction\""},
