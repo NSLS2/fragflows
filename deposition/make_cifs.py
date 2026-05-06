@@ -187,6 +187,7 @@ def make_changed_state_cif(
 
     # information from template cif
     template_block = gemmi.cif.read_file(template_path).sole_block()
+    template_block.set_pair("_exptl_crystal.id", str(xtal_id))
 
     # update .crystal_id pairs from template block
     crystal_id = row.get(xtal_id_key, None)
@@ -271,12 +272,6 @@ def make_changed_state_cif(
     #if "ensemble" not in sblock.name:
     #    raise ValueError("input does not appear to be pandda ensemble model")
 
-    for x in sblock.get_mmcif_category_names():
-        pair_key = f"{x}entry_id"
-        pair = sblock.find_value(pair_key)
-        if pair is not None:
-            sblock.set_pair(pair_key, block_name)
-
     # update block name
     sblock.name = block_name
     sblock.set_pair("_entry.id", block_name)
@@ -315,6 +310,13 @@ def make_changed_state_cif(
 
     update_entity_id_loops(template_block)
     template_block.name = block_name
+
+    for x in template_block.get_mmcif_category_names():
+        pair_key = f"{x}entry_id"
+        pair = template_block.find_value(pair_key)
+        if pair is not None:
+            template_block.set_pair(pair_key, block_name)
+
     doc.add_copied_block(template_block)
 
     for block in sblock_metadata_blocks:
