@@ -8,7 +8,7 @@ def letter_generator():
         while num > 0:
             num, remainder = divmod(num - 1, 26)
             result.append(string.ascii_uppercase[remainder])
-            return "".join(reversed(result))
+        return "".join(reversed(result))
 
     for k in range(1, 15000):
         yield get_letter(k)
