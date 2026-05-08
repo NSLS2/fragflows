@@ -285,7 +285,7 @@ def original_mtz_to_cif_block(
 
 def dimple_mtz_to_cif_block(
     mtz_path: str,
-    spacegroup: gemmi.SpaceGroup,
+    spacegroup: gemmi.SpaceGroup | None=None,
     block_name: str = "XXXXsf",
     crystal_treatment: str = "?",
     diffrn_details: str = "not refined to convergence",
@@ -296,14 +296,16 @@ def dimple_mtz_to_cif_block(
 
     mtz = gemmi.read_mtz_file(mtz_path)
 
+    diffrn_id = xtal_id
+
     try:
         validate_mtz_columns(mtz, mtz_columns)
     except ValueError as e:
-        print(f"Caught ValueError during validation: {e}")
+        print(f"Caught ValueError during validation: {e} for {xtal_id}")
         raise e
 
-    if spacegroup != mtz.spacegroup:
-        raise ValueError(f"Unexpected spacegroup {mtz.spacegroup} in {mtz_path}")
+    if spacegroup.point_group_hm() != mtz.spacegroup.point_group_hm():
+        raise ValueError(f"point groups don't match for {spacegroup} and {mtz.spacegroup} in {mtz_path}")
 
     mtz_to_cif = gemmi.MtzToCif()
     mtz_to_cif.spec_lines = [
@@ -330,7 +332,7 @@ def dimple_mtz_to_cif_block(
 
     # need to add new block pairs and then move them towards top of file
     block.set_pairs(
-        "_diffrn.", {"id": "1", "crystal_id": xtal_id, "crystal_treatment": f'"{crystal_treatment}"', "details": f'"{diffrn_details}"'}, raw=True
+        "_diffrn.", {"id": diffrn_id, "crystal_id": xtal_id, "crystal_treatment": f'"{crystal_treatment}"', "details": f'"{diffrn_details}"'}, raw=True
     )
     idx = [
         block.get_index(k)
