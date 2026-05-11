@@ -2,6 +2,16 @@ import gemmi
 from .utils import letter_generator
 from collections import defaultdict
 
+RESNAME_TO_DESCRIPTION = {
+        'HOH': {'src_method': 'nat', 'pdbx_description': "water"},
+        'CA': {'src_method': 'syn', 'pdbx_description': "\"CALCIUM ION\""},
+        'CL': {'src_method': 'syn', 'pdbx_description': "\"CHLORIDE ION\""},
+        'DMS': {'src_method': 'syn', 'pdbx_description': "\"DIMETHYL SULFOXIDE\""},
+        'NA': {'src_method': 'syn', 'pdbx_description': "\"SODIUM ION\""},
+        'UNL': {'src_method': 'syn', 'pdbx_description': "LIGAND"},
+        'MG': {'src_method': 'syn', 'pdbx_description': "\"MAGNESIUM ION\""},
+        'GOL': {'src_method': 'syn', 'pdbx_description': "GLYCEROL"},
+    }
 
 def fix_formal_charges(func):
     """
@@ -376,3 +386,60 @@ def resolve_entities(st: gemmi.Structure, one_polymer=True):
             del st.entities[i]
     else:
         raise NotImplementedError("Multiple polymer entities not yet supported")
+    
+def remap_entity_ids(block: gemmi.cif.Block):
+    POLYMER_RESIDUES = {"ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"}
+
+
+    # start with atom_site loop
+    # use atom labels to generate mapping, then update other loops
+    atom_site_loop = block.find_loop_item("_atom_site.label_comp_id").loop
+    entity_id_idx = atom_site_loop.tags.index("_atom_site.label_entity_id")
+    auth_comp_id_idx = atom_site_loop.tags.index("_atom_site.label_comp_id")
+    non_polymer_residues = {resname for resname in [atom_site_loop[i, auth_comp_id_idx] for i in range(atom_site_loop.length())] if resname not in POLYMER_RESIDUES and resname != "HOH"}
+    entity_id_remap = {}
+    resname_to_entity_id = {}
+    for i in range(atom_site_loop.length()):
+        res = atom_site_loop[i, auth_comp_id_idx]
+        eid = atom_site_loop[i, entity_id_idx]
+        if res in POLYMER_RESIDUES:
+            entity_id_remap[eid] = "1"
+            atom_site_loop[i, entity_id_idx] = "1"
+        elif res == "HOH":
+            if eid not in entity_id_remap:
+                new_id = str(int(max(entity_id_remap.values(), default="1")) + 1)
+                entity_id_remap[eid] = new_id
+            atom_site_loop[i, entity_id_idx] = entity_id_remap[eid]
+        elif res in non_polymer_residues:
+            if eid not in entity_id_remap:
+                new_id = str(int(max(entity_id_remap.values(), default="1")) + 1)
+                entity_id_remap[eid] = new_id
+            atom_site_loop[i, entity_id_idx] = entity_id_remap[eid]
+        resname_to_entity_id[entity_id_remap[eid]] = res
+
+    # now move to struct_asym
+    #struct_asym_loop = block.find_loop("_struct_asym.id")
+    struct_asym_entity_loop = block.find_loop_item("_struct_asym.entity_id").loop
+    struct_asym_entity_id_idx = struct_asym_entity_loop.tags.index("_struct_asym.entity_id")
+    for i in range(struct_asym_entity_loop.length()):
+        eid = struct_asym_entity_loop[i, struct_asym_entity_id_idx]
+        struct_asym_entity_loop[i, struct_asym_entity_id_idx] = entity_id_remap.get(eid, eid)
+
+    # finally entity table
+    entity_loop = block.find_loop_item("_entity.id").loop
+    entity_id_idx = entity_loop.tags.index("_entity.id")
+    for i in range(entity_loop.length()):
+        eid = entity_loop[i, entity_id_idx]
+        entity_loop[i, entity_id_idx] = entity_id_remap.get(eid, eid)
+
+    entity_loop.add_columns(["_entity.src_method", "_entity.pdbx_description", "_entity.pdbx_mutation", "_entity.pdbx_fragment", "_entity.details"], "?", -1)
+
+    # update src_method and pdbx_description for non-polymer entities
+    for i in range(entity_loop.length()):
+        eid = entity_loop[i, entity_id_idx]
+        resname = resname_to_entity_id.get(eid, None)
+        if resname in RESNAME_TO_DESCRIPTION:
+            entity_loop[i, entity_loop.tags.index("_entity.src_method")] = RESNAME_TO_DESCRIPTION[resname]['src_method']
+            entity_loop[i, entity_loop.tags.index("_entity.pdbx_description")] = RESNAME_TO_DESCRIPTION[resname]['pdbx_description']
+
+    
