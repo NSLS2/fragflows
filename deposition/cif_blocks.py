@@ -341,12 +341,15 @@ def dimple_mtz_to_cif_block(
     [block.move_item(j, k) for j, k in zip(idx, [10, 11, 12, 13])]
 
     # add crystal_id and wavelength_id columns to refln loop if not already present
+    wavelength_id = xtal_id
     for item in block:
         if item.loop and {'_refln'} == set([s.split('.')[0] for s in item.loop.tags]):
             if "_refln.crystal_id" not in item.loop.tags:
                 item.loop.add_columns(["_refln.crystal_id"], xtal_id)
             if "_refln.wavelength_id" not in item.loop.tags:
-                item.loop.add_columns(["_refln.wavelength_id"], "1")
+                item.loop.add_columns(["_refln.wavelength_id"], wavelength_id)
+
+    block.set_pair("_diffrn_radiation_wavelength.id", wavelength_id)
 
     return block
 
@@ -406,13 +409,13 @@ def prune_empty_loops(block: gemmi.cif.Block) -> gemmi.cif.Block:
             new_block.add_item(item)
     return new_block
 
-def filter_mmcif_categories(block: gemmi.cif.Block, allowed_categories: list[str]) -> gemmi.cif.Block:
+def filter_mmcif_categories(block: gemmi.cif.Block, allowed_categories: list[str], disallowed_tags: list[str] | None=None) -> gemmi.cif.Block:
     """remove items from a cif block that do not belong to allowed categories"""
     new_block = gemmi.cif.Block(block.name)
     for item in block:
         if item.pair:
             category = item.pair[0].split(".")[0] + '.'
-            if category in allowed_categories:
+            if category in allowed_categories and (disallowed_tags is None or item.pair[0] not in disallowed_tags):
                 new_block.add_item(item)
         elif item.loop:
             tags = set(s.split(".")[0] + '.' for s in item.loop.tags)
@@ -427,10 +430,10 @@ def filter_mmcif_categories(block: gemmi.cif.Block, allowed_categories: list[str
             raise ValueError("Found CIF item that is neither pair nor loop")
     return new_block
 
-def prepare_cif_block_for_merging(block: gemmi.cif.Block, allowed_categories: list[str]) -> gemmi.cif.Block:
+def prepare_cif_block_for_merging(block: gemmi.cif.Block, allowed_categories: list[str], disallowed_tags: list[str] | None=None) -> gemmi.cif.Block:
     """prepare a cif block for merging by pruning empty loops and filtering categories"""
     pruned_block = prune_empty_loops(block)
-    filtered_block = filter_mmcif_categories(pruned_block, allowed_categories)
+    filtered_block = filter_mmcif_categories(pruned_block, allowed_categories, disallowed_tags)
     return filtered_block
 
 
