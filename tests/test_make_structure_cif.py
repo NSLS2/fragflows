@@ -10,7 +10,7 @@ def test_load_ispyb_xml_to_cif_block():
     assert block is not None
 
 def test_make_changed_state_cif():
-    TEST_STRUCTURE = "cypd-139"
+    TEST_STRUCTURE = "cypd-1"
     refinement_df = pd.read_csv("cypd.20260430.refinement.csv")
     ligand_df = pd.read_csv("cypd.20251001.ligands_fixed.csv")
     doc = make_changed_state_cif(
