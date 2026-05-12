@@ -5,6 +5,7 @@ import sys
 sys.path.append(
     "/nsls2/software/mx/conda_envs/2024-2.0-py311/lib/python3.11/site-packages"
 )
+import argparse
 import gemmi
 import tempfile
 import shutil
@@ -13,6 +14,8 @@ import numpy as np
 from PIL import ImageDraw, ImageFont, Image
 import time
 import json
+import re
+import yaml
 
 
 def get_events(sf):
@@ -170,14 +173,26 @@ def write_images(dataset, group_dir, out_dir=os.getcwd()):
         write_image(ligand, dataset, group_dir, out_dir=out_dir)
 
 
-group_dir = "../test_group_deposition_20260430"
+parser = argparse.ArgumentParser(description="Generate ChimeraX ligand images from group deposition CIFs")
+parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
+parser.add_argument("--out-dir", default=os.getcwd(), help="Output directory for images")
+parser.add_argument("--exclude-pattern", default="ground", help="Regex pattern to exclude datasets by name")
+args, _ = parser.parse_known_args()
 
+with open(args.config) as f:
+    config = yaml.safe_load(f)
 
-datasets = [
-    x[:-7] for x in os.listdir(group_dir) if x.endswith("sf.cif")
-]
+group_dir = config["groupdepflow"]["groupdep_directory"]
+out_dir = args.out_dir
+os.makedirs(out_dir, exist_ok=True)
+
+exclude_re = re.compile(args.exclude_pattern)
+datasets = [x[:-7] for x in os.listdir(group_dir) if x.endswith("sf.cif")]
 print(datasets)
 for d in datasets:
+    if exclude_re.search(d):
+        print(f"Skipping {d} (matches exclude pattern '{args.exclude_pattern}')")
+        continue
     print(d)
-    write_images(d, group_dir, out_dir="../test_ligand_images")
+    write_images(d, group_dir, out_dir=out_dir)
 cx(session, "exit")
