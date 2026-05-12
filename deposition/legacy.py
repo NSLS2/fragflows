@@ -432,7 +432,7 @@ def convert_pdb_to_cif_block(pdb_path: str) -> gemmi.cif.Block:
     try:
         cif_path = pdb_path.replace(".pdb", ".cif")
         subprocess.run(
-            ["/nsls2/software/mx/ccp4-9/bin/gemmi","convert", pdb_path, cif_path],
+            ["/nsls2/software/mx/ccp4-9/bin/gemmi","convert", os.path.basename(pdb_path), os.path.basename(cif_path)],
             check=True, cwd=os.path.dirname(pdb_path)
         )
         return gemmi.cif.read_file(cif_path).sole_block()
@@ -455,6 +455,12 @@ def build_ground_structure_cif(
         "_exptl_crystal_grow.temp": "294",
         "_exptl_crystal_grow.pdbx_details": "\"2.2 M DL-malic acid\""
     }
+
+    for item in template_block:
+        if item.pair:
+            if item.pair[0] in exptl_crystal_grow:
+                exptl_crystal_grow[item.pair[0]] = item.pair[1]
+
     unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split('-')[-1]))
     first_id = unmodelled_xtal_ids[0]
     representative_sblock = convert_pdb_to_cif_block(dimple_metadata[first_id]["dimple_pdb"])
