@@ -3,7 +3,10 @@ from pathlib import Path
 import pandas as pd
 import yaml
 from deposition.make_cifs import assemble_group_changed_state_cifs
+from deposition.cif_blocks import dimple_mtz_to_cif_block
 from validation.cif_checks import (
+    diffrn_ids_disjoint_check,
+    ground_mtz_to_cif_check,
     has_ligand,
     count_ligands,
     count_event_blocks,
@@ -15,6 +18,17 @@ from validation.cif_checks import (
 from collections import defaultdict
 import os
 
+import os
+
+from deposition.legacy import (
+    build_ground_structure_factor_cif,
+    build_ground_structure_cif,
+    _collect_dimple_metadata,
+)
+
+
+# Load yaml config parameters
+
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
 
@@ -24,14 +38,21 @@ REFINEMENT_CSV = cfg["refinement_csv"]
 EVENT_CSV = cfg["event_csv"]
 TEMPLATE_CIF = cfg["template_cif"]
 LIGAND_CSV = cfg["ligand_csv"]
+PANDDA_INPUT_DIR = cfg["pandda_input_dir"]
+PANDDA_ALL_DATASETS_CSV = cfg["pandda_all_datasets_csv"]
+GROUP_DEP_CSV = cfg["groupdep_csv"]
+TARGET_NAME = cfg["target_name"] #fancy target name for the CIF metadata, e.g. "Cyclophilin D"
 CHUNK_SIZE = 5
 
+# load dataframes
+refinement_df = pd.read_csv(REFINEMENT_CSV)
+group_dep_df = pd.read_csv(GROUP_DEP_CSV)
+event_df = pd.read_csv(EVENT_CSV)
+ligand_df = pd.read_csv(LIGAND_CSV)
+group_dep_dir = GROUP_DEP_DIR
 
 def run_assemble_group_changed_state_cifs(only_validate: bool = False):
-    refinement_df = pd.read_csv(REFINEMENT_CSV)
-    event_df = pd.read_csv(EVENT_CSV)
-    ligand_df = pd.read_csv(LIGAND_CSV)
-    group_dep_dir = GROUP_DEP_DIR
+
     if not only_validate:
         assemble_group_changed_state_cifs(
             refinement_df, event_df, group_dep_dir, TEMPLATE_CIF, ligand_df
@@ -55,6 +76,64 @@ def run_assemble_group_changed_state_cifs(only_validate: bool = False):
         diffrn_id_check(cif_path, xtal_id)
         map_ligands_to_events(cif_path, sf_cif_path)
         soaked_compound_check(sf_cif_path, ligand_df)
+
+
+def create_ground_state_cifs():
+    group_dep_set = [
+    k[:-4]
+    for k in os.listdir(
+        GROUP_DEP_DIR
+    )
+    if k.endswith(".cif") and "-sf.cif" not in k
+    ]
+    print(group_dep_set)
+    all_data_combined_df = pd.read_csv(
+        PANDDA_ALL_DATASETS_CSV
+    )
+    unmodelled_xtal_ids = [
+        d for d in all_data_combined_df["dtag"] if d not in group_dep_set
+    ]
+    unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split("-")[1]))
+    print(unmodelled_xtal_ids)
+
+    # ground state identifier
+    ground_state_identifiers = set([s.split("-")[0] for s in unmodelled_xtal_ids])
+
+    # structure factor cifs, multi-block single file
+    if len(ground_state_identifiers) != 1:
+        raise ValueError(f"expected exactly one ground state identifier, found: {ground_state_identifiers}")
+    ground_state_id = ground_state_identifiers.pop()
+
+    d = build_ground_structure_factor_cif(
+        group_dep_df,
+        ligand_df,
+        PANDDA_INPUT_DIR,
+        unmodelled_xtal_ids,
+    )
+    assert d is not None
+    d.write_file(f"{GROUP_DEP_DIR}/{ground_state_id}_ground-sf.cif")
+    assert Path(f"{GROUP_DEP_DIR}/{ground_state_id}_ground-sf.cif").exists()
+
+    # now the structure cif, which requires collecting metadata from the dimple logs and PDBs
+    # there will be one block and one structure for all
+    dimple_metadata = _collect_dimple_metadata(PANDDA_INPUT_DIR, group_dep_df, unmodelled_xtal_ids)
+
+    ground_mtz_to_cif_check(
+        dimple_metadata,
+        f"{GROUP_DEP_DIR}/{ground_state_id}_ground-sf.cif"
+    )
+
+    doc = build_ground_structure_cif(
+        group_dep_df,
+        unmodelled_xtal_ids,
+        TEMPLATE_CIF,
+        dimple_metadata,
+        target_name=TARGET_NAME,
+    )
+    assert doc is not None
+    doc.write_file(f"{GROUP_DEP_DIR}/{ground_state_id}_ground.cif")
+    assert Path(f"{GROUP_DEP_DIR}/{ground_state_id}_ground.cif").exists()
+
 
 def create_group_dep_index(group_dep_dir: str):
     f_index = defaultdict(dict)
@@ -91,4 +170,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     run_assemble_group_changed_state_cifs(only_validate=args.validate)
+    create_ground_state_cifs()
+    diffrn_ids_disjoint_check(GROUP_DEP_DIR)
     create_group_dep_index(GROUP_DEP_DIR)
