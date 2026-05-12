@@ -1,3 +1,5 @@
+import os
+
 import gemmi
 import json
 import pandas as pd
@@ -85,3 +87,43 @@ def soaked_compound_check(structure_factor_cif: str, ligand_df: pd.DataFrame):
     if smiles_from_cif != smiles_from_df:
         raise ValueError(f"Smiles from CIF {smiles_from_cif} does not match expected {smiles_from_df} for crystal {crystal_id}")
     print(f"Crystal {crystal_id} has matching smiles: {smiles_from_cif}")
+
+def ground_mtz_to_cif_check(dimple_metadata: dict, ground_structure_factor_cif: str):
+    print("Checking dimensions of structure factor amplitudes in ground state models...")
+    doc = gemmi.cif.read_file(ground_structure_factor_cif)
+    for block in doc:
+        if block.find_pair('_diffrn.id'):
+            diffrn_id = block.find_pair('_diffrn.id')[1]
+            dimple_mtz = dimple_metadata[diffrn_id]['dimple_mtz']
+            mtz = gemmi.read_mtz_file(dimple_mtz)
+            f_mtz = mtz.column_with_label('F')
+            f_cif = block.find_loop('_refln.F_meas_au')
+            assert len(f_mtz) == len(f_cif), f"Number of reflections in MTZ ({len(f_mtz)}) does not match number of reflections in CIF ({len(f_cif)}) for crystal {diffrn_id}"
+
+def diffrn_ids_disjoint_check(group_dep_dir: str):
+    diffrn_ids_ground = set()
+    for f in os.listdir(group_dep_dir):
+        if f.endswith("ground-sf.cif"):
+            d = gemmi.cif.read_file(f"{group_dep_dir}/{f}")
+            for block in d:
+                if block.find_pair('_diffrn.id'):
+                    diffrn_id = block.find_pair('_diffrn.id')[1]
+                    if diffrn_id in diffrn_ids_ground:
+                        raise ValueError(f"Duplicate _diffrn.id {diffrn_id} found in {f}")
+                    diffrn_ids_ground.add(diffrn_id)
+
+    diffrn_ids_hits = set()
+    for f in os.listdir(group_dep_dir):
+        if f.endswith("-sf.cif") and not f.endswith("ground-sf.cif"):
+            d = gemmi.cif.read_file(f"{group_dep_dir}/{f}") # only refinement block
+            block = d[0]
+            if block.find_pair('_diffrn.id'):
+                diffrn_id = block.find_pair('_diffrn.id')[1]
+                if diffrn_id in diffrn_ids_hits:
+                    raise ValueError(f"Duplicate _diffrn.id {diffrn_id} found in {f}")
+                if diffrn_id in diffrn_ids_ground:
+                    raise ValueError(f"_diffrn.id {diffrn_id} in {f} also found in ground state CIFs")
+                    diffrn_ids_hits.add(diffrn_id) 
+
+    assert diffrn_ids_ground.isdisjoint(diffrn_ids_hits), f"_diffrn.id values are not disjoint between ground state and hit CIFs in {group_dep_dir}" 
+    print(f"All _diffrn.id values are unique across CIF files in {group_dep_dir}")
