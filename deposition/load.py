@@ -4,9 +4,12 @@ from typing import Any, Union
 from .mapping import ALL_SHELL_TO_MODEL, HIGH_SHELL_TO_MODEL
 from .models import ReflectionStats
 import gemmi
+from deposition.utils import PathResolver
 
+_path_resolver = PathResolver()
 
 def ispyb_xml_to_dict(xmlpath: str) -> dict:
+    xmlpath = _path_resolver.resolve(xmlpath)
     with open(xmlpath, "rb") as f:
         data = xmltodict.parse(f)
     return flatten_dict(data)

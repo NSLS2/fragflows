@@ -1,6 +1,9 @@
 import string
 import pandas as pd
 import pytz
+import yaml
+from pathlib import Path
+import os
 
 def letter_generator():
     def get_letter(num):
@@ -32,3 +35,58 @@ def convert_iso_date_to_ymd(date_str: str, target_tz: str) -> str:
         dt = dt.tz_convert(pytz.timezone(target_tz))
 
     return dt.strftime("%Y-%m-%d")
+
+
+class PathResolver:
+    def __init__(self, mapping_config: str = None):
+        self.mappings = []
+        self._load_mappings(mapping_config)
+
+    def _load_mappings(self, mapping_config: str) -> dict:
+        
+        if mapping_config is None:
+            mapping_config = "config.yaml"
+        
+        with open(mapping_config,"r") as f:
+            config = yaml.safe_load(f)
+            path_mappings = config.get("path_mappings", [])
+            
+            if len(path_mappings) == 0:
+                return
+            
+            old_root_path = path_mappings[0]
+            new_root_path = path_mappings[1]
+            self.mappings.append({'old_root': old_root_path, 'new_root': new_root_path})
+
+    def resolve(self, file_path: str) -> str:
+        
+        normalized_path = os.path.normpath(file_path)
+
+        for mapping in self.mappings:
+            old_root = os.path.normpath(mapping['old_root'])
+            new_root = os.path.normpath(mapping['new_root'])
+            
+            if normalized_path.startswith(old_root):
+                relative_path = os.path.relpath(normalized_path, old_root)
+                resolved_path = os.path.join(new_root, relative_path)
+                return resolved_path
+        
+        return file_path  # Return original if no mapping applies
+            
+    
+    def resolve_dataframe_column(self, df, column: str, inplace: bool = True) -> None:
+        """
+        Apply path resolution to all entries in a pandas DataFrame column.
+        
+        Args:
+            df: pandas DataFrame
+            column: Column name containing filepaths
+            inplace: If True, modify df in place; if False, return new df
+        
+        Returns:
+            None if inplace=True, otherwise modified DataFrame
+        """
+        if inplace:
+            df[column] = df[column].apply(self.resolve)
+        else:
+            return df.copy().assign(**{column: df[column].apply(self.resolve)})
