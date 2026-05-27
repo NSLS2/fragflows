@@ -12,6 +12,16 @@ PIPELINE_PARAMETERS = {
         {"name": "Aimless", "classification": "\"data scaling\""},
         {"name": "XDS", "classification": "\"data reduction\""},
     ],
+    "autoPROC 1.0.5 (20230614 - see: http://www.globalphasing.com/autoproc/)": [
+        {
+            "name": "autoPROC",
+            "classification": "\"data reduction\"",
+            "version": "1.0.5",
+            "location": "http://www.globalphasing.com/autoproc/",
+        },
+        {"name": "Aimless", "classification": "\"data scaling\""},
+        {"name": "XDS", "classification": "\"data reduction\""},
+    ],
     "fast_dp": [
         {"name": "FAST_DP", "classification": "\"data reduction\""},
         {"name": "Aimless", "classification": "\"data scaling\""},
