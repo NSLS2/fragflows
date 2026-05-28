@@ -183,36 +183,43 @@ def prune_solvents(st: gemmi.Structure, chains_to_keep=['S']):
 
 
 def check_for_one_atom_res_clash(st: gemmi.Structure, resname: str, cutoff=0.01):
-    # Map each solvent atom -> (chain_name, residue_number)
-    atom_to_res = {
-        a: (c.name, r.seqid.num)
-        for m in st
-        for c in m
-        for r in c
-        if r.name == resname
-        for a in r
-    }
 
-    if not atom_to_res:
-        return
+    # map altlocs
+    altlocs = set([a.altloc for m in st for c in m for r in c for a in r])
+    
+    for altloc in altlocs:
 
-    atoms = np.array(list(atom_to_res), dtype=object)
-    n = len(atoms)
+        # Map each solvent atom -> (chain_name, residue_number)
+        atom_to_res = {
+            a: (c.name, r.seqid.num)
+            for m in st
+            for c in m
+            for r in c
+            if r.name == resname
+            for a in r
+            if a.altloc == altloc or a.altloc == '\x00'
+        }
 
-    # Compute only the upper triangle (including diagonal)
-    overlap = np.zeros((n, n), dtype=bool)
-    for i in range(n):
-        for j in range(i, n):
-            overlap[i, j] = periodic_dist(atoms[i], atoms[j], st.cell) < cutoff
+        if not atom_to_res:
+            return
 
-    col_counts = overlap.sum(axis=0)
-    clashing = col_counts > 1
+        atoms = np.array(list(atom_to_res), dtype=object)
+        n = len(atoms)
 
-    if np.any(clashing):
-        clashing_residues = [atom_to_res[a] for a in atoms[clashing]]
-        raise ValueError(
-            f"overlapping residues detected structure: {st}, residues: {clashing_residues}:{resname}"
-        )
+        # Compute only the upper triangle (including diagonal)
+        overlap = np.zeros((n, n), dtype=bool)
+        for i in range(n):
+            for j in range(i, n):
+                overlap[i, j] = periodic_dist(atoms[i], atoms[j], st.cell) < cutoff
+
+        col_counts = overlap.sum(axis=0)
+        clashing = col_counts > 1
+
+        if np.any(clashing):
+            clashing_residues = [atom_to_res[a] for a in atoms[clashing]]
+            raise ValueError(
+                f"overlapping residues detected structure: {st}, residues: {clashing_residues}:{resname}"
+            )
 
 
 def check_for_solvent_clash(st: gemmi.Structure):
