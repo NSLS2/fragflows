@@ -93,7 +93,7 @@ def create_ground_state_cifs():
     unmodelled_xtal_ids = [
         d for d in all_data_combined_df["dtag"] if d not in group_dep_set
     ]
-    unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split("-")[1]))
+    unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int("".join(ch for ch in x.rsplit("-", 1)[-1] if ch.isdigit() or ch == "0")))
     print(unmodelled_xtal_ids)
 
     # ground state identifier
