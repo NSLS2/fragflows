@@ -1,7 +1,10 @@
+from deposition.utils import PathResolver
 from fragflows_db.data_models import Xtal, HDF5File, MXProcessingResult
 import pandas as pd
 from deposition import load
 import h5py
+
+_path_resolver = PathResolver()
 
 def get_or_create_xtal(session, name: str) -> Xtal:
     xtal = session.query(Xtal).filter_by(name=name).one_or_none()
@@ -58,7 +61,6 @@ def get_or_create_mx_processing_result(
     session.add(result)
     return result
 
-import pandas as pd
 
 def get_mx_processing_results_df(session):
     query = (
@@ -138,8 +140,11 @@ def extend_dataframe_mx_stats(df: pd.DataFrame):
 
 def mtz_from_xml(xml_filepath: str):
     d = load.ispyb_xml_to_dict(xml_filepath)
-    r = [m for m in d['AutoProcContainer.AutoProcProgramContainer.AutoProcProgramAttachment'] if m['fileType'] == 'Result' and m['fileName'].endswith('.mtz')][0]
-    return f"{r['filePath']}/{r['fileName']}"
+    try:
+        r = [m for m in d['AutoProcContainer.AutoProcProgramContainer.AutoProcProgramAttachment'] if m['fileType'] == 'Result' and m['fileName'].endswith('.mtz')][0]
+    except IndexError:
+        print(xml_filepath)
+    return _path_resolver.resolve(f"{r['filePath']}/{r['fileName']}")
 
 def reflection_file_to_df(
         df: pd.DataFrame,
