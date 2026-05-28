@@ -356,7 +356,7 @@ def build_ground_structure_factor_cif(
         FileNotFoundError: If required files don't exist
         ValueError: If data consistency issues found
     """
-    unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split('-')[-1]))
+    #unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split('-')[-1]))
 
     # Compute checksums for all input MTZ files
     group_dep_df_copy = group_dep_df.copy()
@@ -461,7 +461,7 @@ def build_ground_structure_cif(
             if item.pair[0] in exptl_crystal_grow:
                 exptl_crystal_grow[item.pair[0]] = item.pair[1]
 
-    unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split('-')[-1]))
+    #unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split('-')[-1]))
     first_id = unmodelled_xtal_ids[0]
     representative_sblock = convert_pdb_to_cif_block(dimple_metadata[first_id]["dimple_pdb"])
     remap_entity_ids(representative_sblock)
