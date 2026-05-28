@@ -36,8 +36,8 @@ BEAMLINE_PARAMETERS = {
     "E-18-0123": {
         "cif_update": {
             "_diffrn_source.source": "SYNCHROTRON",
-            "_diffrn_source.type": "\"DIAMOND BEAMLINE IO4-1\"",
-            "_diffrn_source.pdbx_synchrotron_beamline": "IO4-1",
+            "_diffrn_source.type": "\"DIAMOND BEAMLINE I04-1\"",
+            "_diffrn_source.pdbx_synchrotron_beamline": "I04-1",
             "_diffrn_source.pdbx_synchrotron_site": "Diamond",
             "_diffrn_detector.details": "?",
             "_diffrn_detector.detector": "PIXEL",
