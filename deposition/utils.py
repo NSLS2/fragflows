@@ -54,9 +54,13 @@ class PathResolver:
             if len(path_mappings) == 0:
                 return
             
-            old_root_path = path_mappings[0]
-            new_root_path = path_mappings[1]
-            self.mappings.append({'old_root': old_root_path, 'new_root': new_root_path})
+            if len(path_mappings) % 2 != 0:
+                raise ValueError("path_mappings should contain pairs of old and new root paths")
+            
+            for i in range(0, len(path_mappings), 2):
+                old_root_path = path_mappings[i]
+                new_root_path = path_mappings[i + 1]
+                self.mappings.append({'old_root': old_root_path, 'new_root': new_root_path})
 
     def resolve(self, file_path: str) -> str:
         
