@@ -1,12 +1,12 @@
 import os
 from pathlib import Path
 import pandas as pd
-from deposition.pipeline_programs import xml_path_to_pipeline_programs
+from deposition.pipeline_programs import xml_path_to_pipeline_programs, PIPELINE_PARAMETERS
 from fragflows_db.crud import mtz_from_xml
 from fragflows_db.utils import sha256sum
 from deposition.beamline_parameters import BEAMLINE_PARAMETERS
 from deposition.load import ispyb_xml_to_cif_block
-from deposition.cif_blocks import convert_cif_pairs_to_loop, dimple_mtz_to_cif_block
+from deposition.cif_blocks import convert_cif_pairs_to_loop, dimple_mtz_to_cif_block, drop_pairs_from_block
 import json
 from deposition.utils import PathResolver, letter_generator, convert_iso_date_to_ymd
 import gemmi
@@ -118,7 +118,7 @@ def build_ground_structure_cif_metadata_loops(
     new_block.init_mmcif_loop("_exptl_crystal", ["id","density_matthews","density_percent_sol"])
     new_block.init_mmcif_loop(
         "_exptl_crystal_grow", ["crystal_id","method", "pH", "temp", "pdbx_details", "pdbx_pH_range"])
-    new_block.init_mmcif_loop("_diffrn", ["id", "crystal_id", "ambient_temp"])
+    new_block.init_mmcif_loop("_diffrn", ["id", "crystal_id", "crystal_treatment", "details", "ambient_temp"])
     new_block.init_mmcif_loop(
         "_diffrn_source",
         ["diffrn_id", "source", "type", "pdbx_wavelength_list", "pdbx_synchrotron_beamline", "pdbx_synchrotron_site"]
@@ -169,7 +169,7 @@ def build_ground_structure_cif_metadata_loops(
         
         # Add diffraction metadata rows
         diffrn_loop = new_block.find_loop_item("_diffrn.id").loop
-        diffrn_loop.add_row([xtal_id, xtal_id, "100"])
+        diffrn_loop.add_row([xtal_id, xtal_id, "?", "?", "100"])
         
         diffrn_source_loop = new_block.find_loop_item("_diffrn_source.diffrn_id").loop
         diffrn_source_loop.add_row([df_collection_date_dict.get(tag, "?") for tag in diffrn_source_loop.tags])
@@ -383,7 +383,7 @@ def build_ground_structure_factor_cif(
     block_letter = ""
     lg = letter_generator()
     
-    for xtal_id in unmodelled_xtal_ids:
+    for idx, xtal_id in enumerate(unmodelled_xtal_ids):
         dimple_entry = dimple_dict[xtal_id]
         
         # Get ligand/crystal treatment info
@@ -404,6 +404,34 @@ def build_ground_structure_factor_cif(
             block_name=f"XXXX{block_letter}sf",
             xtal_id=xtal_id,
         )
+        block = drop_pairs_from_block(block, "_diffrn_radiation_wavelength")
+
+        metadata_block = build_ground_structure_cif_metadata_loops(
+                            group_dep_df,
+                            [xtal_id],
+                            **{f"_diffrn_radiation_wavelength.wavelength": str(ligand_row.get("wavelength", "?"))},
+                            **{"_exptl_crystal_grow.method": "\"VAPOR DIFFUSION, SITTING DROP\"",
+                            "_exptl_crystal_grow.pH": "6.7",
+                            "_exptl_crystal_grow.temp": "294",
+                            "_exptl_crystal_grow.pdbx_details": "\"2.2 M DL-malic acid\""
+                            }
+                        )
+        block = convert_cif_pairs_to_loop(block, '_diffrn')
+        metadata_block, block = deduplicate_cif_loops(metadata_block, block, reference_tag="_diffrn.id")
+        for item in metadata_block:
+            block.add_item(item)
+
+        if idx > 0:
+            block.init_mmcif_loop("_software", ["pdbx_ordinal", "classification", "name", "version", "date", "location", "contact_author", "contact_author_email"])
+            pipeline_programs = xml_path_to_pipeline_programs(group_dep_df.loc[group_dep_df["xtal_id"] == xtal_id]["xml_path"].iloc[0], default=False)
+            software_loop = block.find_loop_item("_software.pdbx_ordinal").loop
+            pdbx_ordinal = 1
+            for program in pipeline_programs:
+                field_map = {"_software.pdbx_ordinal": str(pdbx_ordinal)}
+                field_map.update({f"_software.{k}": v for k, v in program.items()})
+                software_loop.add_row([field_map.get(tag, "?") for tag in software_loop.tags])
+                pdbx_ordinal += 1
+
         block_letter = next(lg)
         doc.add_copied_block(block)
 

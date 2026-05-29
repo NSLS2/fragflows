@@ -125,7 +125,7 @@ def create_ground_state_cifs():
 
     doc = build_ground_structure_cif(
         group_dep_df,
-        unmodelled_xtal_ids,
+        [unmodelled_xtal_ids[0]],
         TEMPLATE_CIF,
         dimple_metadata,
         target_name=TARGET_NAME,
@@ -169,7 +169,7 @@ if __name__ == "__main__":
         help="Only run validation checks on existing CIF files; skip CIF assembly.",
     )
     args = parser.parse_args()
-    run_assemble_group_changed_state_cifs(only_validate=args.validate)
+    #run_assemble_group_changed_state_cifs(only_validate=args.validate)
     create_ground_state_cifs()
     diffrn_ids_disjoint_check(GROUP_DEP_DIR)
     create_group_dep_index(GROUP_DEP_DIR)
