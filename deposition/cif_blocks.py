@@ -292,6 +292,7 @@ def dimple_mtz_to_cif_block(
     mtz_columns: list = ["F", "SIGF", "FC", "PHIC", "FWT", "PHWT", "FOM", "FreeR_flag"],
     default_rfree_value: np.int32 = 0,
     xtal_id: str = "1",
+    ambient_temp: str = "100",
 ) -> gemmi.cif.Block:
 
     mtz = gemmi.read_mtz_file(mtz_path)
@@ -332,13 +333,19 @@ def dimple_mtz_to_cif_block(
 
     # need to add new block pairs and then move them towards top of file
     block.set_pairs(
-        "_diffrn.", {"id": diffrn_id, "crystal_id": xtal_id, "crystal_treatment": f'"{crystal_treatment}"', "details": f'"{diffrn_details}"'}, raw=True
+        "_diffrn.", {
+            "id": diffrn_id,
+            "crystal_id": xtal_id,
+            "crystal_treatment": f'"{crystal_treatment}"',
+            "details": f'"{diffrn_details}"',
+            "ambient_temp": ambient_temp,
+        }, raw=True
     )
     idx = [
         block.get_index(k)
-        for k in ["_diffrn.id", "_diffrn.crystal_id", "_diffrn.crystal_treatment", "_diffrn.details"]
+        for k in ["_diffrn.id", "_diffrn.crystal_id", "_diffrn.crystal_treatment", "_diffrn.details", "_diffrn.ambient_temp"]
     ]
-    [block.move_item(j, k) for j, k in zip(idx, [10, 11, 12, 13])]
+    [block.move_item(j, k) for j, k in zip(idx, [10, 11, 12, 13, 14])]
 
     # add crystal_id and wavelength_id columns to refln loop if not already present
     wavelength_id = xtal_id
@@ -349,7 +356,7 @@ def dimple_mtz_to_cif_block(
             if "_refln.wavelength_id" not in item.loop.tags:
                 item.loop.add_columns(["_refln.wavelength_id"], wavelength_id)
 
-    block.set_pair("_diffrn_radiation_wavelength.id", wavelength_id)
+    #block.set_pair("_diffrn_radiation_wavelength.id", wavelength_id)
 
     return block
 
@@ -508,4 +515,16 @@ def convert_cif_pairs_to_loop(block: gemmi.cif.Block, category: str) -> gemmi.ci
         new_block.init_mmcif_loop(category, loop_tags)
         loop = new_block.find_loop(f"{category}.{loop_tags[0]}").get_loop()
         loop.add_row([str(v) for v in loop_values])
+    return new_block
+
+def drop_pairs_from_block(block: gemmi.cif.Block, category: str) -> gemmi.cif.Block:
+    """drop pairs from a cif block that belong to a specified category"""
+
+    new_block = gemmi.cif.Block(block.name)
+    
+    for item in block:
+        if item.pair and item.pair[0].split('.')[0] == category:
+            continue
+        else:
+            new_block.add_item(item)
     return new_block
