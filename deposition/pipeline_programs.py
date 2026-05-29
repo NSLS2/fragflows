@@ -41,10 +41,12 @@ PIPELINE_PARAMETERS = {
 }
 
 
-def xml_path_to_pipeline_programs(xml_path: str) -> str:
+def xml_path_to_pipeline_programs(xml_path: str, default=True) -> str:
     ispyb_dict = ispyb_xml_to_dict(xml_path)
     program = ispyb_dict[
         "AutoProcContainer.AutoProcProgramContainer.AutoProcProgram.processingPrograms"
     ]
     # program is a string which we need to clean and extract to use as a key
-    return [*PIPELINE_PARAMETERS.get(program, []), *PIPELINE_PARAMETERS['default']]
+    if default:
+        return [*PIPELINE_PARAMETERS.get(program, []), *PIPELINE_PARAMETERS['default']]
+    return [*PIPELINE_PARAMETERS.get(program, [])]
