@@ -169,7 +169,7 @@ if __name__ == "__main__":
         help="Only run validation checks on existing CIF files; skip CIF assembly.",
     )
     args = parser.parse_args()
-    #run_assemble_group_changed_state_cifs(only_validate=args.validate)
+    run_assemble_group_changed_state_cifs(only_validate=args.validate)
     create_ground_state_cifs()
     diffrn_ids_disjoint_check(GROUP_DEP_DIR)
     create_group_dep_index(GROUP_DEP_DIR)
