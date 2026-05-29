@@ -8,7 +8,7 @@ from deposition.beamline_parameters import BEAMLINE_PARAMETERS
 from deposition.load import ispyb_xml_to_cif_block
 from deposition.cif_blocks import convert_cif_pairs_to_loop, dimple_mtz_to_cif_block
 import json
-from deposition.utils import letter_generator, convert_iso_date_to_ymd
+from deposition.utils import PathResolver, letter_generator, convert_iso_date_to_ymd
 import gemmi
 from deposition.structure import remap_entity_ids
 from deposition.cif_blocks import (
@@ -23,6 +23,9 @@ from deposition.cif_blocks import (
 # 20260421
 # helper function for extending the original csv/dataframe used for 
 # dimpleflow with ispyb xml and hdf5 info needed for group deposition.
+
+
+_path_resolver = PathResolver()
 
 def merge_dfs_for_group_dep(
     df1: pd.DataFrame, 
@@ -232,7 +235,7 @@ def get_mtz_input_from_dimple_log(dimple_log_path: str) -> str:
     with open(dimple_log_path, "r") as f:
         for line in f:
             if (parts := line.split()) and 'data_file:' == parts[0]:
-                mtz_path = parts[1]
+                mtz_path = _path_resolver.resolve(parts[1])
                 if Path(mtz_path).exists():
                     return mtz_path
                 else:
