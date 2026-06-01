@@ -28,6 +28,8 @@ def generate_refinement_table(
 
     for d in os.listdir(export_dir):
         data_dir = Path(Path(export_dir) / Path(d))
+        if not data_dir.is_dir():
+            continue
         refine_cifs = [
             f
             for f in data_dir.iterdir()
