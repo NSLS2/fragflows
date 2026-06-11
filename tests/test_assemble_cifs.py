@@ -2,13 +2,15 @@ from deposition.make_cifs import assemble_group_changed_state_cifs
 import pandas as pd
 from pathlib import Path
 
-group_dep_dir = "/nsls2/data/amx/proposals/2025-3/pass-319624/319624-cypd2-processing/test_group_deposition_20260424"
+group_dep_dir = ""
+REFINEMENT_CSV = ""
+EVENT_CSV = ""
+LIGAND_CSV = ""
 
 def test_assemble_group_changed_state_cifs():
-    refinement_df = pd.read_csv("cypd.20260430.refinement.csv")
-    event_df = pd.read_csv("cypd.event_table.20260422.csv")
-    ligand_df = pd.read_csv("cypd.20251001.ligands_fixed.csv")
-    group_dep_dir = "../test_group_deposition_20260430"
+    refinement_df = pd.read_csv(REFINEMENT_CSV)
+    event_df = pd.read_csv(EVENT_CSV)
+    ligand_df = pd.read_csv(LIGAND_CSV)
     assemble_group_changed_state_cifs(
         refinement_df,
         event_df,

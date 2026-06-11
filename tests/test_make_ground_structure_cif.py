@@ -12,17 +12,18 @@ import pandas as pd
 from pathlib import Path
 import gemmi
 
-
+group_dep_dir = ""
 group_dep_set = [
     k[:-4]
     for k in os.listdir(
-        "/nsls2/data/amx/proposals/2025-3/pass-319624/319624-cypd2-processing/fragflows_group_deposition_20260505"
+        group_dep_dir
     )
     if k.endswith(".cif") and "-sf.cif" not in k
 ]
 print(group_dep_set)
+PANDDA_ANALYSE_ALL_INFO = ""
 all_data_combined_df = pd.read_csv(
-    "/nsls2/data/amx/proposals/2025-3/pass-319624/319624-cypd2-processing/pandda_analyse_ccp4-7.0_20251016-1/analyses/all_datasets_info.csv"
+    PANDDA_ANALYSE_ALL_INFO
 )
 unmodelled_xtal_ids = [
     d for d in all_data_combined_df["dtag"] if d not in group_dep_set
@@ -30,10 +31,22 @@ unmodelled_xtal_ids = [
 unmodelled_xtal_ids = sorted(unmodelled_xtal_ids, key=lambda x: int(x.split("-")[1]))
 print(unmodelled_xtal_ids)
 
+GROUP_DEP_CSV = ""
+LIGAND_CSV = ""
+TEMPLATE_CIF_PATH = ""
+test_id1 = ""
+test_id2 = ""
+test_id3 = ""
+test_target_name = ""
+test_dimple_log = ""
+test_dimple_mtz = ""
+test_spacegroup = ""
+dimple_dir = ""
+
 
 def test_legacy_build_ground_structure_cif_loops():
-    df = pd.read_csv("cypd.20260422.group_dep.csv")
-    unmodelled_xtal_ids = ["cypd-1", "cypd-87"]
+    df = pd.read_csv(GROUP_DEP_CSV)
+    unmodelled_xtal_ids = [test_id1, test_id2]
     new_block = build_ground_structure_cif_metadata_loops(df, unmodelled_xtal_ids)
     assert new_block.find_loop_item("_exptl_crystal.id").loop.width() == 3
     assert new_block is not None
@@ -46,72 +59,71 @@ def test_legacy_build_ground_structure_cif_loops():
 
 def test_get_mtz_input_from_dimple_log():
     mtz_path = get_mtz_input_from_dimple_log(
-        "/nsls2/data4/amx/proposals/2025-3/pass-319624/319624-cypd2-processing/models_20251016-1/cypd-116/dimple.log"
+        test_dimple_log
     )
     assert Path(mtz_path).exists()
 
 
 def test_dimple_mtz_to_cif_block():
-    mtz_path = "/nsls2/data4/amx/proposals/2025-3/pass-319624/319624-cypd2-processing/models_20251016-1/cypd-116/cypd-116.dimple.mtz"
+    mtz_path = test_dimple_mtz
     block = dimple_mtz_to_cif_block(
-        mtz_path, gemmi.SpaceGroup("C2"), xtal_id="cypd-116"
+        mtz_path, gemmi.SpaceGroup(test_spacegroup), xtal_id=test_id3
     )
     assert block is not None
     # assert block.name == "cypd-116"
 
 
 def test_legacy_build_ground_structure_factor_cif():
-    df = pd.read_csv("cypd.20260422.group_dep.csv")
-    dimple_dir = "/nsls2/data4/amx/proposals/2025-3/pass-319624/319624-cypd2-processing/models_20251016-1"
-
+    df = pd.read_csv(GROUP_DEP_CSV)
+    dimple_dir = ""
+    ligand_csv = ""
     d = build_ground_structure_factor_cif(
         df,
-        pd.read_csv("cypd.20251001.ligands_fixed.csv"),
+        pd.read_csv(ligand_csv),
         dimple_dir,
         unmodelled_xtal_ids[:100],
     )
     assert d is not None
-    d.write_file("cypd_ground_batch1-sf.cif")
-    assert Path("cypd_ground_batch1-sf.cif").exists()
+    d.write_file("ground_batch1-sf.cif")
+    assert Path("ground_batch1-sf.cif").exists()
 
     d = build_ground_structure_factor_cif(
         df,
-        pd.read_csv("cypd.20251001.ligands_fixed.csv"),
+        pd.read_csv(ligand_csv),
         dimple_dir,
         unmodelled_xtal_ids[100:],
     )
     assert d is not None
-    d.write_file("cypd_ground_batch2-sf.cif")
-    assert Path("cypd_ground_batch2-sf.cif").exists()
+    d.write_file("ground_batch2-sf.cif")
+    assert Path("ground_batch2-sf.cif").exists()
 
 
 def test_legacy_build_ground_structure_cif():
-    df = pd.read_csv("cypd.20260422.group_dep.csv")
-    dimple_dir = "/nsls2/data4/amx/proposals/2025-3/pass-319624/319624-cypd2-processing/models_20251016-1"
+    df = pd.read_csv(GROUP_DEP_CSV)
 
     import os
 
     # unmodelled_xtal_ids = ["cypd-1", "cypd-119"]
-    template_cif_path = "data_template_Xray_GroupDep.20260423.cif"
+    template_cif_path = TEMPLATE_CIF_PATH
     dimple_metadata = _collect_dimple_metadata(dimple_dir, df, unmodelled_xtal_ids)
     doc = build_ground_structure_cif(
         df,
         unmodelled_xtal_ids[:100],
         template_cif_path,
         dimple_metadata,
-        target_name="Cyclophilin D",
+        target_name=test_target_name,
     )
     assert doc is not None
-    doc.write_file("cypd_ground_batch1.cif")
-    assert Path("cypd_ground_batch1.cif").exists()
+    doc.write_file("ground_batch1.cif")
+    assert Path("ground_batch1.cif").exists()
 
     doc = build_ground_structure_cif(
         df,
         unmodelled_xtal_ids[100:],
         template_cif_path,
         dimple_metadata,
-        target_name="Cyclophilin D",
+        target_name=test_target_name,
     )
     assert doc is not None
-    doc.write_file("cypd_ground_batch2.cif")
-    assert Path("cypd_ground_batch2.cif").exists()
+    doc.write_file("ground_batch2.cif")
+    assert Path("ground_batch2.cif").exists()

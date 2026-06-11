@@ -3,9 +3,11 @@ from deposition.structure import resolve_entities
 from deposition.cif_blocks import update_entity_id_loops
 import os
 
+ENSEMBLE_CIF_PATH = ""
 
 def test_resolve_cif_entities():
-    st = gemmi.read_structure("../fragflows_export_flow_20260319-1/cypd-1/cypd-1-ensemble-model_refine.mmcif")
+
+    st = gemmi.read_structure(ENSEMBLE_CIF_PATH)
     st_b = st.make_mmcif_block()
     entities = st_b.find_loop_item('_entity.id').loop.values
     assert len(entities) > 0, "missing _entity loop"
@@ -21,7 +23,7 @@ def test_resolve_cif_entities():
     assert st is not None
 
 def test_update_entity_id_loops():
-    d = gemmi.cif.read_file("cypd-1.mmcif")
+    d = gemmi.cif.read_file(ENSEMBLE_CIF_PATH)
     b = d[0] # structure block
     assert type(b) == gemmi.cif.Block
     update_entity_id_loops(b)

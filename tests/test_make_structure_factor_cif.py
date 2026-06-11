@@ -4,9 +4,9 @@ import pandas as pd
 
 
 def test_make_changed_state_sf_cif():
-    TEST_STRUCTURE = "cypd-139"
-    refinement_df = pd.read_csv("cypd.20260430.refinement.csv")
-    event_df = pd.read_csv("cypd.event_table.20260422.csv")
+    TEST_STRUCTURE = ""
+    refinement_df = pd.read_csv("")
+    event_df = pd.read_csv("")
     doc = make_changed_state_sf_cif(
         refinement_df,
         event_df,

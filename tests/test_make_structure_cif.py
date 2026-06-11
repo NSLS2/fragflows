@@ -4,15 +4,15 @@ from deposition.load import ispyb_xml_to_cif_block
 import pandas as pd
 
 def test_load_ispyb_xml_to_cif_block():
-    xml_path = "/nsls2/data4/amx/proposals/2025-3/pass-319624/319624-20250809-dtime/mx319624-1/cypd-1/1/FGZ-007_1/autoProcOutput/autoPROC.xml"
+    xml_path = ""
     assert Path(xml_path).exists()
     block = ispyb_xml_to_cif_block(xml_path)
     assert block is not None
 
 def test_make_changed_state_cif():
-    TEST_STRUCTURE = "cypd-1"
-    refinement_df = pd.read_csv("cypd.20260430.refinement.csv")
-    ligand_df = pd.read_csv("cypd.20251001.ligands_fixed.csv")
+    TEST_STRUCTURE = ""
+    refinement_df = pd.read_csv("")
+    ligand_df = pd.read_csv("")
     doc = make_changed_state_cif(
         refinement_df,
         TEST_STRUCTURE,
