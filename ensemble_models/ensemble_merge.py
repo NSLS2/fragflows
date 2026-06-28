@@ -116,6 +116,8 @@ def max_altlocs(residues: list[dict]) -> set:
         for res in residues
     ]
 
+    altloc_sets = [s-{'\x00'} for s in altloc_sets]  # remove reference altloc if present
+
     if not altloc_sets:
         return set()
 
@@ -200,27 +202,37 @@ def relabel_altloc(residue: dict, from_label: str = None, to_label: str = None):
 
 
 def get_reference_atom(gemmi_residue: gemmi.Residue, atom_name: str) -> gemmi.Atom:
-    for a in gemmi_residue:
-        if a.altloc == "\x00" and a.name == atom_name:
-            return a
+
+    atom_altloc_dict = {(a.name, a.altloc): a for a in gemmi_residue if a.name == atom_name}
+    if len(atom_altloc_dict) == 0:
+        raise ValueError(f"no atoms found for {gemmi_residue} and {atom_name}")
+    
+    if atom_altloc_dict.get((atom_name, "\x00")) is not None:
+        return atom_altloc_dict[(atom_name, "\x00")]
+
+    sorted_altlocs = sorted(list(atom_altloc_dict.keys()), key=lambda x: x[1])
+    if atom_altloc_dict.get(sorted_altlocs[0]) is not None:
+        return atom_altloc_dict[sorted_altlocs[0]]
+    
     raise ValueError(f"no reference altloc found for {gemmi_residue} and {atom_name}")
 
 
 def fill_altlocs(residue: dict, altlocs_to_fill: set = None):
 
     gemmi_res = get_gemmi_residue(residue)
+    altlocs_to_fill = altlocs_to_fill | {'\x00'}
     all_atom_altlocs = set().union(*residue["atom_altlocs"].values())
-    if not all_atom_altlocs.issubset(altlocs_to_fill | {"\x00"}):
+    if not all_atom_altlocs.issubset(altlocs_to_fill):
         raise ValueError(
             f"current altlocs for: {residue} are not subset of max altlocs"
         )
 
     atoms_to_add = []
-    for a in gemmi_res:
-        if not a.has_altloc():
-            reference_atom = get_reference_atom(gemmi_res, a.name)
-            altlocs_to_add = altlocs_to_fill - residue["atom_altlocs"][a.name]
-            for altloc in sorted(altlocs_to_add):
+    for atom_name, present_altlocs in residue["atom_altlocs"].items():
+        missing_altlocs = altlocs_to_fill - present_altlocs
+        if missing_altlocs:
+            reference_atom = get_reference_atom(gemmi_res, atom_name)
+            for altloc in sorted(missing_altlocs):
                 atom_to_add = reference_atom.clone()
                 atom_to_add.altloc = altloc
                 atoms_to_add.append(atom_to_add)
@@ -913,6 +925,22 @@ class EnsembleMerger:
 
         if sync_solvent:
             self._sync_solvent_labels()
+
+        # refmac5 has issues with OXT atoms
+        for model in self.acceptor:
+            for chain in model:
+                for residue in chain:
+                    for i in range(len(residue)-1,-1,-1):
+                        if residue[i].name == "OXT":
+                                del residue[i]
+
+
+        for model in self.donor:
+            for chain in model:
+                for residue in chain:
+                    for i in range(len(residue)-1,-1,-1):
+                        if residue[i].name == "OXT":
+                                del residue[i]
 
         # populated during merging
         self._acceptor_residues = None
