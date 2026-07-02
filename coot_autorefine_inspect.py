@@ -28,13 +28,18 @@ def script_args(script_filename="coot_autorefine_inspect.py"):
 
 args = script_args()
 
-if len(args) > 1:
+USE_EVENT_CCP4 = False
+for arg in args:
+    if arg == 'ccp4_events':
+        USE_EVENT_CCP4 = True
+
+if len(args) > 2:
     raise Exception('too many input args')
 
 start_n = 0
-if len(args) == 1:
-    start_n = int(args[0]) - 1
-
+start_n_args = [a for a in args if a != 'ccp4_events']
+if len(start_n_args) == 1 and start_n_args[0].isdigit():
+    start_n = int(start_n_args[0]) - 1
 
 with open('config.yaml','r') as f:
     data = yaml.safe_load(f)
@@ -43,10 +48,11 @@ EXPORT_DIR = data['refineflow']['export_data_directory']
 DATASETS = []
 
 for dataset in os.listdir(EXPORT_DIR):
+    map_extension = ".ccp4" if USE_EVENT_CCP4 else ".mtz"
     DATASETS.append(
         (f"{EXPORT_DIR}/{dataset}/{dataset}-ensemble-model_refine.mmcif",
          f"{EXPORT_DIR}/{dataset}/{dataset}-ensemble-model_refine.mtz",
-         [str(d) for d in Path(f"{EXPORT_DIR}/{dataset}").glob("*event*.ccp4")],
+         [str(d) for d in Path(f"{EXPORT_DIR}/{dataset}").glob(f'*event*{map_extension}')],
          dataset)
     )
 
@@ -120,10 +126,16 @@ def _load_dataset(i):
     _state["imol_fofc"] = imol_fofc
 
     for event_map in event_maps:
-        imol_event_map = read_ccp4_map(event_map, False)
+        if USE_EVENT_CCP4:
+            imol_event_map = read_ccp4_map(event_map, False)
+
+        else:
+            imol_event_map = make_and_draw_map(event_map, F_COL, PHI_COL, "", 0, 0)
+
         _state["event_maps"].append(imol_event_map)
         set_map_displayed(imol_event_map, 0)
         set_map_colour(imol_event_map, 1, 1, 1)
+
 
     _state["xtal_id"] = xtal_id
 
