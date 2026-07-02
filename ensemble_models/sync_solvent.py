@@ -8,6 +8,8 @@ def periodic_dist(atom1: gemmi.Atom, atom2: gemmi.Atom, cell) -> float:
     return nearest.dist()
 
 
+
+
 def map_solvent_residues(st: gemmi.Structure):
     solvent_residues = {}
     for model in st:
@@ -16,6 +18,50 @@ def map_solvent_residues(st: gemmi.Structure):
                 if res.name == "HOH":
                     solvent_residues[(chain.name, res.seqid.num, "HOH")] = list(res)
     return solvent_residues
+
+
+def relabel_false_solvent_altlocs(st: gemmi.Structure, solvent_altloc_threshold=2.2):
+    for model in st:
+        for chain in model:
+            chain_idx_max = max([r.seqid.num for r in chain], default=0)
+
+            for res in list(chain):
+                if res.name != "HOH":
+                    continue
+
+                altloc_atoms = [a for a in res if a.has_altloc()]
+
+                if not altloc_atoms:
+                    continue
+
+                if len(altloc_atoms) != 2 or len(res) != 2:
+                    raise ValueError(
+                        f"solvent residue {res} has unsupported altloc state"
+                    )
+
+                if periodic_dist(altloc_atoms[0], altloc_atoms[1], st.cell) <= solvent_altloc_threshold:
+                    continue
+
+                atom_to_split = altloc_atoms[1]
+                new_atom = atom_to_split.clone()
+                new_atom.altloc = "\x00"
+                new_atom.occ = 1.0
+
+                chain_idx_max += 1
+
+                new_res = gemmi.Residue()
+                new_res.seqid = gemmi.SeqId(chain_idx_max, " ")
+                new_res.name = "HOH"
+                new_res.add_atom(new_atom)
+                chain.add_residue(new_res)
+
+                for i in range(len(res) - 1, -1, -1):
+                    if res[i].altloc == atom_to_split.altloc:
+                        del res[i]
+                        break
+
+                res[0].altloc = "\x00"
+                res[0].occ = 1.0
 
 
 def generate_acceptor_solvent_alias(
@@ -246,14 +292,19 @@ def check_for_nonpolymer_clashes(st: gemmi.Structure):
         check_for_one_atom_res_clash(st, resname)
 
 
-def sync_solvent_labels(acceptor: gemmi.Structure, donor: gemmi.Structure):
+def sync_solvent_labels(acceptor: gemmi.Structure, donor: gemmi.Structure, **kwargs):
     check_for_solvent_clash(acceptor)
     check_for_solvent_clash(donor)
+
+    # relabel false solvent altlocs if they are too far apart
+    relabel_false_solvent_altlocs(acceptor)
+    relabel_false_solvent_altlocs(donor)
+    
     acceptor_solvent = map_solvent_residues(acceptor)
     donor_solvent = map_solvent_residues(donor)
     acceptor_alias = generate_acceptor_solvent_alias(acceptor, acceptor_solvent)
     # information about acceptor structure is needed to relabel donor solvents
-    donor_alias = generate_donor_solvent_alias(donor, acceptor_solvent, acceptor_alias)
+    donor_alias = generate_donor_solvent_alias(donor, acceptor_solvent, acceptor_alias, **kwargs)
     insert_solvent_chain(acceptor[0], acceptor_solvent, acceptor_alias)
     insert_solvent_chain(donor[0], donor_solvent, donor_alias)
     prune_solvents(acceptor)
