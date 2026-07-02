@@ -68,6 +68,13 @@ parser.add_argument(
     help="proportion of acceptor, donor mix, similar concept to bdc, value of [0,1]"
 )
 
+parser.add_argument(
+    "--donor_solvent_threshold_dist",
+    type=float,
+    default=2,
+    help="threshold distance which raises an exception if donor solvent altlocs are further apart than this distance in Angstroms",
+)
+
 args, _unknown = parser.parse_known_args()
 
 if args.datasets:
@@ -269,6 +276,7 @@ def merge_ensemble(dir_dict: dict, write_files=True):
             dir_dict["xtal_id"],
             bdc=args.mix_coeff,
             occupancy_kwargs={"eps": args.eps, "min_samples": 2},
+            threshold=args.donor_solvent_threshold_dist,
         )
         em.run()
 
@@ -320,7 +328,58 @@ def copy_files(dir_dict: dict):
             shutil.copy2(f, d, follow_symlinks=True)
 
         return dir_dict
+
+@task(name="event_ccp4_to_mtz", tags=["event_ccp4_to_mtz"])
+def event_ccp4_to_mtz(dir_dict: dict):
+
+    def complex_asu_data_to_mtz(
+        data: gemmi.ComplexAsuData,
+        f_label="F",
+        phi_label="PHI",
+        dataset_name="default",
+    ):
+        mtz = gemmi.Mtz(with_base=True)   # adds H K L
+        mtz.spacegroup = data.spacegroup
+        mtz.cell = data.unit_cell
+
+        mtz.add_dataset(dataset_name)
+        mtz.add_column(f_label, "F")
+        mtz.add_column(phi_label, "P")
+
+        mtz.set_data(data)
+        mtz.update_reso()
+
+        return mtz
     
+    if dir_dict['ensemble_merge_ok']:
+        if not dir_dict["ground_state_reflections"]:
+            return dir_dict
+
+        ground_state_mtz_path = dir_dict["export_dir"] / Path(dir_dict["ground_state_reflections"][0]).name
+        ground_state_mtz = gemmi.read_mtz_file(str(ground_state_mtz_path))
+        dmin = ground_state_mtz.resolution_high()
+
+        for event_map in dir_dict["event_maps"]:
+            ccp4_path = dir_dict["export_dir"] / event_map.name
+            if not ccp4_path.exists():
+                continue
+
+            ccp4_map = gemmi.read_ccp4_map(str(ccp4_path), setup=True)
+            ccp4_map.grid.spacegroup = gemmi.SpaceGroup("P 1")
+            ccp4_map.update_ccp4_header()
+
+            fphi = gemmi.transform_map_to_f_phi(ccp4_map.grid)
+            complex_asu_data = fphi.prepare_asu_data(dmin=dmin)
+
+            mtz = complex_asu_data_to_mtz(
+                complex_asu_data,
+                f_label="FWT",
+                phi_label="PHWT",
+                dataset_name=event_map.stem,
+            )
+            mtz.write_to_file(str(dir_dict["export_dir"] / f"{event_map.stem}.mtz"))
+
+    return dir_dict
 
 
 
@@ -336,7 +395,8 @@ def export_flow(jobs, **kwargs):
         make_dir_output = make_export_dir.map(validate_output)
         merge_output = merge_ensemble.map(make_dir_output)
         copy_output = copy_files.map(merge_output)
-        return copy_output
+        event_ccp4_to_mtz_output = event_ccp4_to_mtz.map(copy_output)
+        return event_ccp4_to_mtz_output
 
 
 if __name__ == "__main__":
