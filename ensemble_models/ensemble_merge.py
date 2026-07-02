@@ -911,6 +911,7 @@ class EnsembleMerger:
         bdc: np.float64 = 0.8,
         occupancy_kwargs: dict = {"eps": 2.5, "min_samples": 1},
         sync_solvent=True,
+        **kwargs
     ):
 
         # donor model is merged into acceptor model which is modified in place
@@ -924,7 +925,7 @@ class EnsembleMerger:
         self._model_precheck()
 
         if sync_solvent:
-            self._sync_solvent_labels()
+            self._sync_solvent_labels(**kwargs)
 
         # refmac5 has issues with OXT atoms
         for model in self.acceptor:
@@ -966,8 +967,8 @@ class EnsembleMerger:
                 f"mismatching resolution, acceptor: {self.acceptor.resolution} vs. donor: {self.donor.resolution}"
             )
 
-    def _sync_solvent_labels(self):
-        sync_solvent_labels(self.acceptor, self.donor)
+    def _sync_solvent_labels(self, **kwargs):
+        sync_solvent_labels(self.acceptor, self.donor, **kwargs)
 
     def _map_altlocs(self):
 
