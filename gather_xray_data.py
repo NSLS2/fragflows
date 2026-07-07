@@ -57,6 +57,12 @@ parser.add_argument(
     help="if set, will save the filtered dataframe to a csv file with this name instead of the default ISO8601 timestamped name"
 )
 
+parser.add_argument(
+    "--no_filter",
+    action="store_true",
+    help="if set, will not filter the dataframe based on r_mrg and symm, and will instead return all rows in the database"
+)
+
 args = parser.parse_args()
 
 # initialize database if it doesn't exist, otherwise update with new files
@@ -124,7 +130,9 @@ def pick_row(group: pandas.DataFrame)->pandas.Series:
     return group.iloc[0]
 
 df["r_mrg"] = df["r_mrg"].astype(np.float64)
-df = df.groupby("xtal_id", group_keys=False).apply(pick_row, include_groups=False)
+
+if not args.no_filter:
+    df = df.groupby("xtal_id", group_keys=False).apply(pick_row, include_groups=False)
 
 # We have applied the filters based on processing stats, now we will do the more
 # costly operation of extracting collection info from hdf5 files.
@@ -135,7 +143,11 @@ print(df)
 if args.csv:
     df.to_csv(args.csv, index=False)
 else:
+    if args.no_filter:
+        suffix = "unfiltered"
+    else:
+        suffix = "filtered"
     df.to_csv(
-        f"{SAMPLE_NAME}.{datetime.datetime.now().strftime('%Y%m%d')}.filtered.csv",
+        f"{SAMPLE_NAME}.{datetime.datetime.now().strftime('%Y%m%d')}.{suffix}.csv",
         index=False
     )
