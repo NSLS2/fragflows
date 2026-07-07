@@ -38,9 +38,7 @@ def ingest_mx_processing_path(session, filepath: str):
 
     if not schema.validate(xml_doc):
         print(f"Invalid schema for {filepath}")
-        for error in schema.error_log:
-            print(error.message)
-        return
+        raise Exception(f"XML file {filepath} does not conform to schema {xsd_path}: {schema.error_log.last_error}")
 
     mx_processing_dict = load.ispyb_xml_to_dict(filepath)
     hdf5_directory = mx_processing_dict['AutoProcContainer.AutoProcScalingContainer.AutoProcIntegrationContainer.Image.fileLocation']
