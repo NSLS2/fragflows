@@ -1,6 +1,7 @@
 import gemmi
 import numpy as np
 from collections import defaultdict
+from deposition.structure import RESNAME_TO_DESCRIPTION
 
 # map mtz column labels from various programs to pdbx refln compliant names
 # https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/
@@ -469,15 +470,7 @@ def update_entity_id_loops(block: gemmi.cif.Block, exclude_polymer_entity_ids: b
 
 
     # will need updating for each project
-    resname_to_description = {
-        'HOH': {'src_method': 'nat', 'pdbx_description': "water"},
-        'CA': {'src_method': 'syn', 'pdbx_description': "\"CALCIUM ION\""},
-        'CL': {'src_method': 'syn', 'pdbx_description': "\"CHLORIDE ION\""},
-        'DMS': {'src_method': 'syn', 'pdbx_description': "\"DIMETHYL SULFOXIDE\""},
-        'NA': {'src_method': 'syn', 'pdbx_description': "\"SODIUM ION\""},
-        'UNL': {'src_method': 'syn', 'pdbx_description': "LIGAND"},
-        'MG': {'src_method': 'syn', 'pdbx_description': "\"MAGNESIUM ION\""},
-    }
+    resname_to_description = RESNAME_TO_DESCRIPTION
 
     #update the entity_id table src_method and pdbx_description for non-polymer
     loop = block.find_loop_item('_entity.id').loop
