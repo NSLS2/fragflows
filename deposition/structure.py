@@ -11,6 +11,7 @@ RESNAME_TO_DESCRIPTION = {
         'UNL': {'src_method': 'syn', 'pdbx_description': "LIGAND"},
         'MG': {'src_method': 'syn', 'pdbx_description': "\"MAGNESIUM ION\""},
         'GOL': {'src_method': 'syn', 'pdbx_description': "GLYCEROL"},
+        'PO4': {'src_method': 'syn', 'pdbx_description': "\"PHOSPHATE ION\""},
     }
 
 def fix_formal_charges(func):
