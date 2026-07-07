@@ -26,7 +26,7 @@ def generate_refinement_table(
     # the most recently modified reflection/structure cif file is considered to be the final file
     # the input ensemble model used for refinement is collected to perform a validation check later
 
-    for d in os.listdir(export_dir):
+    for d in [d for d in os.listdir(export_dir) if d in dataset_df["xtal_id"].values]:
         data_dir = Path(Path(export_dir) / Path(d))
         if not data_dir.is_dir():
             continue
@@ -46,39 +46,42 @@ def generate_refinement_table(
             if basename in file.name and file.is_file() and file.name.endswith("cif"):
                 refine_cifs.append(file)
 
-        refine_cifs = sorted(refine_cifs, key=lambda f: f.stat().st_mtime, reverse=True)
-        result_dict = {
-            "uid": str(uuid.uuid4()),
-            "xtal_id": d,
-            "input_structure_file": input_pdb,
-            "refined_structure_file": next(
-                (str(f) for f in refine_cifs if basename_hkl not in f.name), None
-            ),
-            "refined_reflection_file": next(
-                (str(f) for f in refine_cifs if basename_hkl in f.name), None
-            ),
-            "reflection_data_file": dataset_df.loc[
-                dataset_df["xtal_id"] == d, "filepath"
-            ].iloc[0],
-            "smiles": ligand_df.loc[ligand_df["xtal_id"] == d, "smiles"].iloc[0],
-            "catalog_id": ligand_df.loc[ligand_df["xtal_id"] == d, "catalog_id"].iloc[
-                0
-            ],
-            "xml_path": dataset_df.loc[
-                dataset_df["xtal_id"] == d, "xml_path"
-            ].iloc[0],
-            "data_collection_date": dataset_df.loc[
-                dataset_df["xtal_id"] == d, "data_collection_date"
-            ].iloc[0],
-            "wavelength": dataset_df.loc[
-                dataset_df["xtal_id"] == d, "wavelength"
-            ].iloc[0],
-            "det_serial_no": dataset_df.loc[
-                dataset_df["xtal_id"] == d, "det_serial_no"
-            ].iloc[0],
-        }
-        result_list.append(result_dict)
-
+        try:
+            refine_cifs = sorted(refine_cifs, key=lambda f: f.stat().st_mtime, reverse=True)
+            result_dict = {
+                "uid": str(uuid.uuid4()),
+                "xtal_id": d,
+                "input_structure_file": input_pdb,
+                "refined_structure_file": next(
+                    (str(f) for f in refine_cifs if basename_hkl not in f.name), None
+                ),
+                "refined_reflection_file": next(
+                    (str(f) for f in refine_cifs if basename_hkl in f.name), None
+                ),
+                "reflection_data_file": dataset_df.loc[
+                    dataset_df["xtal_id"] == d, "filepath"
+                ].iloc[0],
+                "smiles": ligand_df.loc[ligand_df["xtal_id"] == d, "smiles"].iloc[0],
+                "catalog_id": ligand_df.loc[ligand_df["xtal_id"] == d, "catalog_id"].iloc[
+                    0
+                ],
+                "xml_path": dataset_df.loc[
+                    dataset_df["xtal_id"] == d, "xml_path"
+                ].iloc[0],
+                "data_collection_date": dataset_df.loc[
+                    dataset_df["xtal_id"] == d, "data_collection_date"
+                ].iloc[0],
+                "wavelength": dataset_df.loc[
+                    dataset_df["xtal_id"] == d, "wavelength"
+                ].iloc[0],
+                "det_serial_no": dataset_df.loc[
+                    dataset_df["xtal_id"] == d, "det_serial_no"
+                ].iloc[0],
+            }
+            result_list.append(result_dict)
+        except Exception as e:
+            print(f"problem finding refined structure/reflection files for {d}: {e}")
+            
     df = pd.DataFrame(result_list)
     return df
 
