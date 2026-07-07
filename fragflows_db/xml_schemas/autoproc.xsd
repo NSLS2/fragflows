@@ -99,8 +99,8 @@
                                                                                                         <xs:element name="cell_alpha" type="xs:decimal" />
                                                                                                         <xs:element name="cell_beta" type="xs:decimal" />
                                                                                                         <xs:element name="cell_gamma" type="xs:decimal" />
-                                                                                                        <xs:element name="startImageNumber" type="xs:unsignedByte" />
-                                                                                                        <xs:element name="endImageNumber" type="xs:unsignedShort" />
+                                                                                                        <xs:element name="startImageNumber" type="xs:unsignedInt" />
+                                                                                                        <xs:element name="endImageNumber" type="xs:unsignedInt" />
                                                                                                         <xs:element name="refinedDetectorDistance" type="xs:decimal" />
                                                                                                         <xs:element name="refinedXBeam" type="xs:decimal" />
                                                                                                         <xs:element name="refinedYBeam" type="xs:decimal" />
