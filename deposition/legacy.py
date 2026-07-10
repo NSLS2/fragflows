@@ -338,6 +338,10 @@ def build_ground_structure_factor_cif(
         models_dir: str,
         unmodelled_xtal_ids: list[str],
         log_file_name: str = "dimple.log",
+        exptl_crystal_grow_pH: str = "?",
+        exptl_crystal_grow_temp: str = "?",
+        exptl_crystal_grow_pdbx_details: str = "?",
+        group_dep_spacegroup: str = None,     
 ) -> gemmi.cif.Document:
     """
     Build CIF document with structure factor blocks from dimple outputs.
@@ -399,7 +403,7 @@ def build_ground_structure_factor_cif(
         # Convert dimple MTZ to CIF block
         block = dimple_mtz_to_cif_block(
             mtz_path=dimple_entry["dimple_mtz"],
-            spacegroup=gemmi.SpaceGroup("C2"),
+            spacegroup=gemmi.SpaceGroup(group_dep_spacegroup),
             crystal_treatment=diffrn_crystal_treatment_json,
             block_name=f"XXXX{block_letter}sf",
             xtal_id=xtal_id,
@@ -411,9 +415,9 @@ def build_ground_structure_factor_cif(
                             [xtal_id],
                             **{f"_diffrn_radiation_wavelength.wavelength": str(ligand_row.get("wavelength", "?"))},
                             **{"_exptl_crystal_grow.method": "\"VAPOR DIFFUSION, SITTING DROP\"",
-                            "_exptl_crystal_grow.pH": "6.7",
-                            "_exptl_crystal_grow.temp": "294",
-                            "_exptl_crystal_grow.pdbx_details": "\"2.2 M DL-malic acid\""
+                            "_exptl_crystal_grow.pH": exptl_crystal_grow_pH,
+                            "_exptl_crystal_grow.temp": exptl_crystal_grow_temp,
+                            "_exptl_crystal_grow.pdbx_details": exptl_crystal_grow_pdbx_details
                             }
                         )
         block = convert_cif_pairs_to_loop(block, '_diffrn')
