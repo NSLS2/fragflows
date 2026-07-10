@@ -91,17 +91,28 @@ def add_text_to_img(image: str, text: str):
     # Create a drawing object
     draw = ImageDraw.Draw(img)
 
-    # Choose font (defaults to a basic one if you don’t have a ttf file)
-    # You can specify a font file (like Arial.ttf) if you want nicer text
-    font = ImageFont.load_default()
+    # Prefer system TTF fonts, but fall back to PIL default if unavailable.
+    font = None
+    candidate_fonts = [
+        "/usr/share/fonts/nimbus-sans-l/NimbusSanL-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    ]
+    for font_path in candidate_fonts:
+        if os.path.exists(font_path):
+            try:
+                font = ImageFont.truetype(font_path, 16)
+                break
+            except OSError:
+                continue
+    if font is None:
+        font = ImageFont.load_default()
 
     draw.multiline_text(
         (20, 20),
         text,
         fill="red",
-        font=ImageFont.truetype(
-            "/usr/share/fonts/nimbus-sans-l/NimbusSanL-Bold.ttf", 16
-        ),
+        font=font,
     )
 
     # Save result
