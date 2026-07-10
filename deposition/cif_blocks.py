@@ -245,9 +245,11 @@ def original_mtz_to_cif_block(
     # translational symmetry operations may not be defined in original intensity file
     if mtz.spacegroup != spacegroup:
         print(
-            "Refinement cif and original intensities have different spacegroups,"
-            "but same point groups."
+            "Refinement cif and original intensities have different spacegroups, "
+            f"but same point groups. Updating from {mtz.spacegroup} to {spacegroup}"
         )
+        mtz.spacegroup = spacegroup
+
 
     mtz_to_cif = gemmi.MtzToCif()
     mtz_to_cif.wavelength = mtz.dataset(1).wavelength
