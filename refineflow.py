@@ -173,7 +173,7 @@ def refmac_flow(jobs, **kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Refinement runner")
     parser.add_argument(
-        "--select_datasets", "--select-datasets",
+        "--select_datasets", "--select-datasets", "--datasets",
         dest="select_datasets",
         default=None,
         help='Comma-separated dataset IDs to refine, e.g. --select_datasets "xtal-001, xtal-002". '
