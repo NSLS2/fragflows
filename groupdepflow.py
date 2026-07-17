@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import gemmi
 import pandas as pd
 import yaml
 from deposition.make_cifs import assemble_group_changed_state_cifs
@@ -42,6 +43,7 @@ PANDDA_INPUT_DIR = cfg["pandda_input_dir"]
 PANDDA_ALL_DATASETS_CSV = cfg["pandda_all_datasets_csv"]
 GROUP_DEP_CSV = cfg["groupdep_csv"]
 TARGET_NAME = cfg["target_name"] #fancy target name for the CIF metadata, e.g. "Cyclophilin D"
+GROUP_DEP_SPACEGROUP = cfg["spacegroup"] #spacegroup for the group deposition CIFs, e.g. "P65"
 CHUNK_SIZE = 5
 
 # load dataframes
@@ -50,6 +52,11 @@ group_dep_df = pd.read_csv(GROUP_DEP_CSV)
 event_df = pd.read_csv(EVENT_CSV)
 ligand_df = pd.read_csv(LIGAND_CSV)
 group_dep_dir = GROUP_DEP_DIR
+all_data_combined_df = pd.read_csv(
+    PANDDA_ALL_DATASETS_CSV
+)
+if 'rejection_reason' in all_data_combined_df.columns:
+    all_data_combined_df = all_data_combined_df[all_data_combined_df['rejection_reason'].isna()]
 
 def run_assemble_group_changed_state_cifs(only_validate: bool = False):
 
@@ -87,9 +94,6 @@ def create_ground_state_cifs():
     if k.endswith(".cif") and "-sf.cif" not in k
     ]
     print(group_dep_set)
-    all_data_combined_df = pd.read_csv(
-        PANDDA_ALL_DATASETS_CSV
-    )
     unmodelled_xtal_ids = [
         d for d in all_data_combined_df["dtag"] if d not in group_dep_set
     ]
@@ -104,11 +108,21 @@ def create_ground_state_cifs():
         raise ValueError(f"expected exactly one ground state identifier, found: {ground_state_identifiers}")
     ground_state_id = ground_state_identifiers.pop()
 
+    #extract crystal growth conditions
+    template_block = gemmi.cif.read_file(TEMPLATE_CIF)[0]
+    exptl_crystal_grow_pH = template_block.find_pair('_exptl_crystal_grow.pH')[1]
+    exptl_crystal_grow_temp = template_block.find_pair('_exptl_crystal_grow.temp')[1]
+    exptl_crystal_grow_pdbx_details = template_block.find_pair('_exptl_crystal_grow.pdbx_details')[1]
+
     d = build_ground_structure_factor_cif(
         group_dep_df,
         ligand_df,
         PANDDA_INPUT_DIR,
         unmodelled_xtal_ids,
+        exptl_crystal_grow_pH=exptl_crystal_grow_pH if exptl_crystal_grow_pH else "?",
+        exptl_crystal_grow_temp=exptl_crystal_grow_temp if exptl_crystal_grow_temp else "?",
+        exptl_crystal_grow_pdbx_details=exptl_crystal_grow_pdbx_details if exptl_crystal_grow_pdbx_details else "?",
+        group_dep_spacegroup=GROUP_DEP_SPACEGROUP
     )
     assert d is not None
     d.write_file(f"{GROUP_DEP_DIR}/{ground_state_id}_ground-sf.cif")
