@@ -314,7 +314,6 @@ def merge_ensemble(dir_dict: dict, write_files=True):
 def copy_files(dir_dict: dict):
 
     if dir_dict['ensemble_merge_ok']:
-        s = dir_dict["source_dir"]
         d = dir_dict["export_dir"]
         files = (
             dir_dict["ground_state"]
@@ -325,7 +324,11 @@ def copy_files(dir_dict: dict):
             + dir_dict["average_map"]
         )
         for f in files:
-            shutil.copy2(f, d, follow_symlinks=True)
+            dst = Path(d) / Path(f).name
+            try:
+                shutil.copy2(f, dst, follow_symlinks=True)
+            except PermissionError:
+                shutil.copyfile(f, dst, follow_symlinks=True)
 
         return dir_dict
 
@@ -402,7 +405,7 @@ def export_flow(jobs, **kwargs):
 if __name__ == "__main__":
     n_cpus = multiprocessing.cpu_count()
     if n_cpus < 30:
-        n_chunks = n_cpus - 2
+        n_chunks = 2
     else:
         n_chunks = 2
     jobs_list = list(dir_dict.values())
