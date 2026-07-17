@@ -404,7 +404,7 @@ if __name__ == "__main__":
     if n_cpus < 30:
         n_chunks = n_cpus - 2
     else:
-        n_chunks = 10
+        n_chunks = 2
     jobs_list = list(dir_dict.values())
     job_chunks = [
         jobs_list[i : i + n_chunks] for i in range(0, len(jobs_list), n_chunks)
