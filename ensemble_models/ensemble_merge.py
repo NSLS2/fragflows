@@ -355,7 +355,15 @@ def merge_residue(residue_to_merge: dict) -> None:
         acceptor_structure_ref = residue_to_merge["acceptor_structure_ref"]
         c = get_chain_from_structure(acceptor_structure_ref, 0, donor_residue["chain"])
         gemmi_donor_residue = get_gemmi_residue(donor_residue)
-        c.add_residue(gemmi_donor_residue)
+        if gemmi_donor_residue.seqid.num is not None and gemmi_donor_residue.entity_type == gemmi.EntityType.Polymer:
+            if sorted(r.seqid.num for r in c) != [r.seqid.num for r in c]:
+                raise ValueError("residues in chain are not sorted by seqid.num")
+            for i, r in enumerate(c):
+                if gemmi_donor_residue.seqid.num < r.seqid.num:
+                    c.add_residue(gemmi_donor_residue, i)
+                    break
+        else:
+            c.add_residue(gemmi_donor_residue)
 
         # update
         residue = {
@@ -946,6 +954,10 @@ class EnsembleMerger:
                     for i in range(len(residue)-1,-1,-1):
                         if residue[i].name == "OXT":
                                 del residue[i]
+
+        # ensure entity poly type defined
+        self.acceptor.setup_entities()
+        self.donor.setup_entities()
 
         # populated during merging
         self._acceptor_residues = None
