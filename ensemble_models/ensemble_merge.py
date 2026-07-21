@@ -110,20 +110,24 @@ def max_altlocs(residues: list[dict]) -> set:
         an identical set of altloc identifiers.
     """
 
-    # Collect each residue's union of altloc identifiers, flatten
+    # Collect each residue's union of altloc identifiers.
     altloc_sets = [
         set().union(*res["atom_altlocs"].values()) if res.get("atom_altlocs") else set()
         for res in residues
     ]
 
-    altloc_sets = [s-{'\x00'} for s in altloc_sets]  # remove reference altloc if present
-
     if not altloc_sets:
-        return set()
+        return {"\x00"}
+
+    # Keep reference-only case: if all residues are empty or only '\x00',
+    # return the reference altloc set instead of an empty max set.
+    non_reference_sets = [s - {"\x00"} for s in altloc_sets]
+    if all(len(s) == 0 for s in non_reference_sets):
+        return {"\x00"}
 
     # Identify the set with maximum size
-    max_set = max(altloc_sets, key=len)
-    same_size_sets = [s for s in altloc_sets if len(s) == len(max_set)]
+    max_set = max(non_reference_sets, key=len)
+    same_size_sets = [s for s in non_reference_sets if len(s) == len(max_set)]
 
     # Validate that all residues with maximal size agree on altloc IDs
     if len(same_size_sets) > 1:
