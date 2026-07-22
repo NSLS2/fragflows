@@ -18,7 +18,7 @@ from .utils import letter_generator
 from .load import ispyb_xml_to_cif_block
 from .beamline_parameters import BEAMLINE_PARAMETERS
 from .utils import convert_iso_date_to_ymd
-from .structure import tweak_occupancy, resolve_entities
+from .structure import apply_structure_edits, tweak_occupancy, resolve_entities
 from .pipeline_programs import xml_path_to_pipeline_programs
 
 
@@ -143,10 +143,13 @@ def make_changed_state_cif(
     ensemble_structure = gemmi.read_structure(structure_cif)
 
     n_atoms = len([a for m in ensemble_structure for c in m for r in c for a in r])
+
+    delta_n_atoms = apply_structure_edits(ensemble_structure, "modify.edits")
     tweak_occupancy(ensemble_structure)
     resolve_entities(ensemble_structure)
+    ensemble_structure.clear_sequences()
 
-    if len([a for m in ensemble_structure for c in m for r in c for a in r]) != n_atoms:
+    if len([a for m in ensemble_structure for c in m for r in c for a in r]) != n_atoms + delta_n_atoms:
         raise ValueError("number of atoms changed, something went wrong")
     
     sblock = ensemble_structure.make_mmcif_block()
@@ -159,7 +162,7 @@ def make_changed_state_cif(
             '_entity.',
             '_chem_comp.',
             '_struct_asym.',
-            '_entity_poly_seq.',
+            #'_entity_poly_seq.', this field can be problematic if not kept in sync with structure
             '_atom_site.'
         ]
     )

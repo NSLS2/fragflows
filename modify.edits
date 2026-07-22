@@ -1,0 +1,31 @@
+rename_residue:
+  - id: edit1
+    chain: A
+    seqid: 7
+    old_resname: ALA
+    new_resname: TYR
+  - id: edit2
+    chain: B
+    seqid: 7
+    old_resname: ALA
+    new_resname: TYR
+  - id: edit3
+    chain: A
+    seqid: 69
+    old_resname: ALA
+    new_resname: GLY
+  - id: edit4
+    chain: A
+    seqid: 69
+    old_resname: ALA
+    new_resname: GLY
+delete_atoms:
+  - id: edit5
+    chain: A
+    seqid: 69
+    atom_name: CB
+  - id: edit6
+    chain: B
+    seqid: 69
+    atom_name: CB
+  

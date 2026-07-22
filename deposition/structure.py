@@ -1,6 +1,7 @@
 import gemmi
 from .utils import letter_generator
 from collections import defaultdict
+import yaml
 
 RESNAME_TO_DESCRIPTION = {
         'HOH': {'src_method': 'nat', 'pdbx_description': "water"},
@@ -443,4 +444,40 @@ def remap_entity_ids(block: gemmi.cif.Block):
             entity_loop[i, entity_loop.tags.index("_entity.src_method")] = RESNAME_TO_DESCRIPTION[resname]['src_method']
             entity_loop[i, entity_loop.tags.index("_entity.pdbx_description")] = RESNAME_TO_DESCRIPTION[resname]['pdbx_description']
 
-    
+
+def apply_structure_edits(st: gemmi.Structure, edits: str):
+    with open(edits, "r") as f:
+        edits = f.read()
+    yaml_data = yaml.safe_load(edits)
+    rename_residue = yaml_data.get('rename_residue', [])
+    for rr in rename_residue:
+        chain_id = rr['chain']
+        seqid = rr['seqid']
+        new_resname = rr['new_resname']
+        old_resname = rr['old_resname']
+        for model in st:
+            for chain in model:
+                if chain.name == chain_id:
+                    for residue in chain:
+                        if residue.seqid.num == seqid:
+                            if residue.name == old_resname:
+                                print(f"Renaming residue {old_resname} to {new_resname} in chain {chain_id} at seqid {seqid}")
+                                residue.name = new_resname
+
+    delete_atoms = yaml_data.get('delete_atoms', [])
+    delta_n_atoms = 0
+    for da in delete_atoms:
+        chain_id = da['chain']
+        seqid = da['seqid']
+        atom_name = da['atom_name']
+        for model in st:
+            for chain in model:
+                if chain.name == chain_id:
+                    for residue in chain:
+                        if residue.seqid.num == seqid:
+                            for i in range(len(residue) - 1, -1, -1):
+                                if residue[i].name == atom_name:
+                                    print(f"Deleting atom {atom_name} from residue {residue.name} {residue.seqid.num} in chain {chain_id}")
+                                    del residue[i]
+                                    delta_n_atoms -= 1
+    return delta_n_atoms
