@@ -1,8 +1,10 @@
 import os
-
 import gemmi
 import json
 import pandas as pd
+import yaml
+from collections import Counter
+
 
 def has_ligand(structure_cif: str, ligand_name: "UNL") -> bool:
     st = gemmi.read_structure(structure_cif)
@@ -127,3 +129,27 @@ def diffrn_ids_disjoint_check(group_dep_dir: str):
 
     assert diffrn_ids_ground.isdisjoint(diffrn_ids_hits), f"_diffrn.id values are not disjoint between ground state and hit CIFs in {group_dep_dir}" 
     print(f"All _diffrn.id values are unique across CIF files in {group_dep_dir}")
+
+def poly_entity_check(structure_cif: str, config_file: str="config.yaml"):
+
+    structure_cif_block = gemmi.cif.read_file(structure_cif)[0]
+    with open(config_file, 'r') as f:
+        config = yaml.safe_load(f)
+    poly_entities = config.get('groupdepflow', {}).get('poly_entities', [])
+
+    if not poly_entities:
+        raise ValueError(f"No poly_entities defined in {config_file}, skipping poly entity check for {structure_cif}")
+    
+    entity_counter = Counter()
+    asym_entity_loop = structure_cif_block.find_loop('_struct_asym.entity_id')
+
+    if len(asym_entity_loop) == 0:
+        raise ValueError(f"No _struct_asym.entity_id loop found in {structure_cif}")
+    
+    for e in asym_entity_loop:
+        entity_counter.update(e)
+
+    for pe in poly_entities:
+        if entity_counter[str(pe['id'])] != pe['num_chains']:
+            raise ValueError(f"Poly entity {pe['id']} has {entity_counter[str(pe['id'])]} chains, expected {pe['num_chains']} in {structure_cif}")
+        print(f"Poly entity {pe['id']} has correct number of chains: {entity_counter[str(pe['id'])]} in {structure_cif}")

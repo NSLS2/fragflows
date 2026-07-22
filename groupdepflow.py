@@ -15,6 +15,7 @@ from validation.cif_checks import (
     diffrn_id_check,
     map_ligands_to_events,
     soaked_compound_check,
+    poly_entity_check
 )
 from collections import defaultdict
 import os
@@ -78,6 +79,8 @@ def run_assemble_group_changed_state_cifs(only_validate: bool = False):
         assert (
             event_count <= ligand_count
         ), f"more event blocks ({event_count}) than ligands ({ligand_count}) in {xtal_id}"
+
+        poly_entity_check(cif_path)
         cif_loop_check(cif_path)
         diffrn_id_check(sf_cif_path, xtal_id)
         diffrn_id_check(cif_path, xtal_id)
@@ -147,6 +150,8 @@ def create_ground_state_cifs():
     assert doc is not None
     doc.write_file(f"{GROUP_DEP_DIR}/{ground_state_id}_ground.cif")
     assert Path(f"{GROUP_DEP_DIR}/{ground_state_id}_ground.cif").exists()
+    poly_entity_check(f"{GROUP_DEP_DIR}/{ground_state_id}_ground.cif")
+
 
 
 def create_group_dep_index(group_dep_dir: str):
