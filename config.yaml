@@ -10,27 +10,36 @@ ligandflow:
   ligand_csv: "ligands.csv"
 
 gather_xray_data:
-  data_directory: "/path/to/xray_data"
-  sample_name: "sample123"
+  data_directory: "/nsls2/data/amx/proposals/"
+  sample_name: "ftsz"
 
 exportflow:
-  export_data_directory: "/full/path/to/test_export_flow_20260102"
-  pandda_analyse_directory: "/full/path/to/pandda_analyse"
-  export_list: "export.txt"
+  export_data_directory: ""
+  pandda_analyse_directory: ""
+  export_list: "export-2.txt"
   ground_basename: "pandda-input"
   changed_basename: "pandda-model"
   ensemble_basename: "ensemble-model"
-  validate_only: True  
+  validate_only: False 
 
 refineflow:
-  export_data_directory: "/path/to/export"
-  ligand_csv: "/path/to/ligands.csv"
+  export_data_directory: ""
+  ligand_csv: ""
   basename: "ensemble-model"
   basename_hkl: "pandda-input"
+  refinement_program: "refmac"
 
 groupdepflow:
   groupdep_directory: ""
   refinement_csv: ""
   event_csv: ""
-  template_cif: ""
+  template_cif: "data_template_Xray_GroupDep.20260423.cif"
   ligand_csv: ""
+  pandda_input_dir: ""
+  pandda_all_datasets_csv: ""
+  groupdep_csv: ""
+  target_name: "FtsZ"
+  spacegroup: "P65"
+  poly_entities:
+    - id: 1
+      num_chains: 2
