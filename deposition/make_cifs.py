@@ -337,11 +337,19 @@ def assemble_group_changed_state_cifs(
         xtal_id_key: str = "xtal_id",
         block_append_identifier: str = "comp_",
         block_name: str = "xxxx",
+        dataset_list: list[str] | None = None,
 ):
     xtal_ids = list(refinement_table[xtal_id_key])
+    if dataset_list is not None:
+        if set(dataset_list) - set(xtal_ids):
+            raise ValueError(f"dataset_list contains xtal_ids not present in refinement_table: {set(dataset_list) - set(xtal_ids)}")
+        
+        xtal_ids = [xtal_id for xtal_id in xtal_ids if xtal_id in dataset_list]
+
     if len(set(xtal_ids)) != len(xtal_ids):
         raise Exception('redundant xtal_ids found in refinement_table')
-    
+
+
     for xtal_id in xtal_ids:
         print(f'generating files for {xtal_id}')
         changed_state_sf_doc = make_changed_state_sf_cif(

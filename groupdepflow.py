@@ -59,14 +59,14 @@ all_data_combined_df = pd.read_csv(
 if 'rejection_reason' in all_data_combined_df.columns:
     all_data_combined_df = all_data_combined_df[all_data_combined_df['rejection_reason'].isna()]
 
-def run_assemble_group_changed_state_cifs(only_validate: bool = False):
+def run_assemble_group_changed_state_cifs(only_validate: bool = False, dataset_list=None):
 
     if not only_validate:
         assemble_group_changed_state_cifs(
-            refinement_df, event_df, group_dep_dir, TEMPLATE_CIF, ligand_df
+            refinement_df, event_df, group_dep_dir, TEMPLATE_CIF, ligand_df, dataset_list=dataset_list
         )
     # check that files are generated for each xtal_id in refinement_df
-    for xtal_id in refinement_df["xtal_id"]:
+    for xtal_id in (dataset_list if dataset_list is not None else refinement_df["xtal_id"]):
         sf_cif_path = f"{group_dep_dir}/{xtal_id}-sf.cif"
         assert Path(sf_cif_path).exists(), f"missing {sf_cif_path}"
         cif_path = f"{group_dep_dir}/{xtal_id}.cif"
@@ -187,8 +187,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Only run validation checks on existing CIF files; skip CIF assembly.",
     )
+    parser.add_argument(
+        "--datasets",
+        type=str,
+        default=None,
+        help="Comma-separated list of changed state dataset IDs to process (default: all datasets in refinement CSV).",
+    )
+
     args = parser.parse_args()
-    run_assemble_group_changed_state_cifs(only_validate=args.validate)
-    create_ground_state_cifs()
+    if args.datasets:
+        dataset_list = [d.strip() for d in args.datasets.split(",")]
+        run_assemble_group_changed_state_cifs(only_validate=args.validate, dataset_list=dataset_list)
+    else:
+        run_assemble_group_changed_state_cifs(only_validate=args.validate)
+        create_ground_state_cifs()
+
     diffrn_ids_disjoint_check(GROUP_DEP_DIR)
     create_group_dep_index(GROUP_DEP_DIR)
