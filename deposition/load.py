@@ -65,3 +65,65 @@ def ispyb_xml_to_cif_block(
     for k, v in payload.items():
         out_block.set_pair(k, v)
     return out_block
+
+def cif_to_payload(cif_block: gemmi.cif.Block, ignored_categories: list[str]=['_atom_site','_entity_poly_seq','_refln']) -> dict:
+    payload = {}
+    for item in cif_block:
+        if item.pair:
+            # Simple key-value pair
+            key, value = item.pair
+            if key in payload:
+                raise ValueError(f"Duplicate key found in CIF block: {key}")
+            payload[key] = value
+            
+        elif item.loop:
+            # Loop with multiple columns (tags) and rows
+            loop = item.loop
+            tags = loop.tags  # List of column headers
+            if any(ignored_category == tags[0].split('.')[0] for ignored_category in ignored_categories):
+                # Skip ignored categories
+                continue
+            values = loop.values  # Flat list of all values
+            
+            # Chunk values by number of tags
+            num_cols = len(tags)
+            rows = [values[i:i + num_cols] for i in range(0, len(values), num_cols)]
+            
+            # Store as list of dicts, one dict per row
+            loop_data = [dict(zip(tags, row)) for row in rows]
+            
+            # You can store as single dict if one row, or list if multiple
+            if len(loop_data) == 1:
+                # Single row: merge tags as separate keys or nest under loop name
+                payload.update(loop_data[0])
+            else:
+                # Multiple rows: use loop name (first tag prefix) as key
+                loop_name = tags[0].rsplit('.', 1)[0]  # e.g., "_atom_site.label" → "_atom_site"
+                payload[loop_name] = loop_data
+
+    resolution_shells = payload.get('_refine_ls_shell', [])
+
+    if isinstance(resolution_shells, list) and len(resolution_shells) > 0:
+        high_resolution_shell = min(resolution_shells, key=lambda x: float(x.get('_refine_ls_shell.d_res_low')))
+        for key, value in high_resolution_shell.items():
+            if key in payload:
+                raise ValueError(f"Duplicate key found in CIF block: {key}")
+            payload[key] = value
+
+    refln_stats = payload.get('_reflns', [])
+    if isinstance(refln_stats, list) and len(refln_stats) == 1:
+        overall_refln_stats = refln_stats[0]
+        for key, value in overall_refln_stats.items():
+            if key in payload:
+                raise ValueError(f"Duplicate key found in CIF block: {key}")
+            payload[key] = value
+
+    refln_shell_stats = payload.get('_reflns_shell', [])
+    if isinstance(refln_shell_stats, list) and len(refln_shell_stats) == 1:
+        overall_refln_shell_stats = refln_shell_stats[0]
+        for key, value in overall_refln_shell_stats.items():
+            if key in payload:
+                raise ValueError(f"Duplicate key found in CIF block: {key}")
+            payload[key] = value
+
+    return payload

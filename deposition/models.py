@@ -1,9 +1,10 @@
 from pydantic import BaseModel, Field
 try:
-    from pydantic import ConfigDict
+    from pydantic import ConfigDict, field_validator
     _PYDANTIC_V2 = True
 except ImportError:
     ConfigDict = None
+    field_validator = None
     _PYDANTIC_V2 = False
 from typing import Union
 
@@ -61,3 +62,60 @@ class ReflectionStats(BaseModel):
         class Config:
             allow_population_by_field_name = True
             extra = "ignore"
+
+class GroupDepCif(BaseModel):
+    diffrn_id: str = Field("?", alias="_diffrn.id")
+    diffrn_source_type: str = Field("?", alias="_diffrn_source.type")
+    diffrn_source_pdbx_wavelength_list: Union[str, float] = Field("?", alias="_diffrn_source.pdbx_wavelength_list")
+    symmetry_space_group_name_HM: str = Field("?", alias="_symmetry.space_group_name_H-M")
+    cell_length_a: Union[str, float] = Field("?", alias="_cell.length_a")
+    cell_length_b: Union[str, float] = Field("?", alias="_cell.length_b")
+    cell_length_c: Union[str, float] = Field("?", alias="_cell.length_c")
+    cell_angle_alpha: Union[str, float] = Field("?", alias="_cell.angle_alpha")
+    cell_angle_beta: Union[str, float] = Field("?", alias="_cell.angle_beta")
+    cell_angle_gamma: Union[str, float] = Field("?", alias="_cell.angle_gamma")
+
+    reflection_stats: ReflectionStats
+
+    refine_ls_number_reflns_obs: Union[str, float] = Field("?", alias="_refine.ls_number_reflns_obs")
+    refine_ls_number_reflns_R_free: Union[str, float] = Field("?", alias="_refine.ls_number_reflns_R_free")
+    refine_ls_R_factor_R_work: Union[str, float] = Field("?", alias="_refine.ls_R_factor_R_work")
+    refine_ls_R_factor_R_free: Union[str, float] = Field("?", alias="_refine.ls_R_factor_R_free")
+    refine_ls_d_res_high: Union[str, float] = Field("?", alias="_refine.ls_d_res_high")
+    refine_ls_d_res_low: Union[str, float] = Field("?", alias="_refine.ls_d_res_low")
+    refine_B_iso_Wilson_estimate: Union[str, float] = Field("?", alias="_refine.B_iso_Wilson_estimate")
+
+    # high res refinement shell
+    refine_ls_shell_number_reflns_all: Union[str, float] = Field("?", alias="_refine_ls_shell.number_reflns_all")
+    refine_ls_shell_number_reflns_R_free: Union[str, float] = Field("?", alias="_refine_ls_shell.number_reflns_R_free")
+    refine_ls_shell_R_factor_R_work: Union[str, float] = Field("?", alias="_refine_ls_shell.R_factor_R_work")
+    refine_ls_shell_R_factor_R_free: Union[str, float] = Field("?", alias="_refine_ls_shell.R_factor_R_free")
+    refine_ls_shell_d_res_low: Union[str, float] = Field("?", alias="_refine_ls_shell.d_res_low")
+    refine_ls_shell_d_res_high: Union[str, float] = Field("?", alias="_refine_ls_shell.d_res_high")
+
+    if _PYDANTIC_V2:
+        model_config = ConfigDict(populate_by_name=True, extra="ignore")
+        
+        @field_validator('reflection_stats', mode='before')
+        @classmethod
+        def instantiate_reflection_stats(cls, v):
+            if isinstance(v, dict):
+                return ReflectionStats(**v)
+            return v
+        
+        def model_dump_flat(self, **kwargs):
+            """Flatten reflection_stats into top-level dict"""
+            d = self.model_dump(**kwargs)
+            if 'reflection_stats' in d and isinstance(d['reflection_stats'], dict):
+                d.update(d.pop('reflection_stats'))
+            return d
+    else:
+        class Config:
+            allow_population_by_field_name = True
+            extra = "ignore"
+        
+        def dict_flat(self, **kwargs):
+            d = self.dict(**kwargs)
+            if 'reflection_stats' in d and isinstance(d['reflection_stats'], dict):
+                d.update(d.pop('reflection_stats'))
+            return d
