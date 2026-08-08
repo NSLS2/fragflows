@@ -8,6 +8,9 @@ Processing flows for X-ray crystallographic fragment screening at NSLS-II.
 
 Currently, support is only provided for the NSLS-II computing environment.
 
+## Structure Gallery
+[M. tuberculosis FtsZ](https://rcsb.org/groups/summary/entry/G_1002379)
+
 ## Table of Contents
 
 - [Installation](#installation)
