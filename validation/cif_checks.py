@@ -147,7 +147,7 @@ def poly_entity_check(structure_cif: str, config_file: str="config.yaml"):
         raise ValueError(f"No _struct_asym.entity_id loop found in {structure_cif}")
     
     for e in asym_entity_loop:
-        entity_counter.update(e)
+        entity_counter[e] += 1
 
     for pe in poly_entities:
         if entity_counter[str(pe['id'])] != pe['num_chains']:
