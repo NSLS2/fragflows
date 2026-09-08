@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import sys
 import gemmi
 import pandas as pd
 import yaml
@@ -193,8 +194,18 @@ if __name__ == "__main__":
         default=None,
         help="Comma-separated list of changed state dataset IDs to process (default: all datasets in refinement CSV).",
     )
+    parser.add_argument(
+        "--ground","--ground-only","--ground_only",
+        action="store_true",
+        help="only generate the ground state",
+    )
 
     args = parser.parse_args()
+
+    if args.ground:
+        create_ground_state_cifs()
+        sys.exit(0)
+
     if args.datasets:
         dataset_list = [d.strip() for d in args.datasets.split(",")]
         run_assemble_group_changed_state_cifs(only_validate=args.validate, dataset_list=dataset_list)
