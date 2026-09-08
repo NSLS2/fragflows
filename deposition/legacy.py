@@ -275,7 +275,8 @@ def _collect_dimple_metadata(
     # Validate all requested crystals have dimple outputs
     if any(xtal_id not in xtal_id_from_dimple_dirs for xtal_id in unmodelled_xtal_ids):
         raise ValueError(
-            "Some xtal_id values from unmodelled list not in dimple log directories."
+            "Some xtal_id values from unmodelled list not in dimple log directories.",
+            f"Missing xtal_ids: {[xtal_id for xtal_id in unmodelled_xtal_ids if xtal_id not in xtal_id_from_dimple_dirs]}"
         )
 
     # Build metadata dictionary
@@ -285,6 +286,9 @@ def _collect_dimple_metadata(
             if f_ == log_file_name:
                 dimple_log_path = os.path.join(r, f_)
                 xtal_id = os.path.basename(r)
+                if not Path(f'{r}/{xtal_id}.dimple.mtz').exists():
+                    print(f"Dimple MTZ file {r}/{xtal_id}.dimple.mtz does not exist...skipping")
+                    continue
                 
                 # Get input MTZ path from log
                 mtz_path = get_mtz_input_from_dimple_log(dimple_log_path)
