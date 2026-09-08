@@ -216,7 +216,7 @@ def original_mtz_to_cif_block(
     spacegroup: gemmi.SpaceGroup,
     block_name: str = "xxxxAsf",
     details: str = "data from original reflections",
-    mtz_columns: list = ["IMEAN", "SIGIMEAN", "F", "SIGF"],
+    mtz_columns: list = ["IMEAN", "SIGIMEAN"],
     xtal_id: str = "1",
 ) -> gemmi.cif.Block:
     
