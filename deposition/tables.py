@@ -135,7 +135,7 @@ def generate_event_table(
             "z": row["z"],
         }
 
-        if row["Ligand Placed"] == True and row["Ligand Confidence"] == "High":
+        if row["Ligand Placed"] == True:
             result_list.append(result_dict)
 
     df = pd.DataFrame(result_list)
