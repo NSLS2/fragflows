@@ -48,6 +48,8 @@ EXPORT_DIR = data['refineflow']['export_data_directory']
 DATASETS = []
 
 for dataset in os.listdir(EXPORT_DIR):
+    if 'coot-history' in dataset or dataset.endswith('.py') or dataset == 'pymol' or 'coot-download' in dataset:
+        continue
     map_extension = ".ccp4" if USE_EVENT_CCP4 else ".mtz"
     DATASETS.append(
         (f"{EXPORT_DIR}/{dataset}/{dataset}-ensemble-model_refine.mmcif",
