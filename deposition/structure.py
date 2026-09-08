@@ -13,6 +13,7 @@ RESNAME_TO_DESCRIPTION = {
         'MG': {'src_method': 'syn', 'pdbx_description': "\"MAGNESIUM ION\""},
         'GOL': {'src_method': 'syn', 'pdbx_description': "GLYCEROL"},
         'PO4': {'src_method': 'syn', 'pdbx_description': "\"PHOSPHATE ION\""},
+        'NCA': {'src_method': 'nat', 'pdbx_description': "NICOTINAMIDE"},
     }
 
 def fix_formal_charges(func):
@@ -449,6 +450,8 @@ def apply_structure_edits(st: gemmi.Structure, edits: str):
     with open(edits, "r") as f:
         edits = f.read()
     yaml_data = yaml.safe_load(edits)
+    if yaml_data is None:
+        return 0
     rename_residue = yaml_data.get('rename_residue', [])
     for rr in rename_residue:
         chain_id = rr['chain']
