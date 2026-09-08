@@ -357,7 +357,7 @@ def merge_residue(residue_to_merge: dict) -> None:
         gemmi_donor_residue = get_gemmi_residue(donor_residue)
         if gemmi_donor_residue.seqid.num is not None and gemmi_donor_residue.entity_type == gemmi.EntityType.Polymer:
             if sorted(r.seqid.num for r in c) != [r.seqid.num for r in c]:
-                raise ValueError("residues in chain are not sorted by seqid.num")
+                raise ValueError(f"residues in chain are not sorted by seqid.num: chain:{c}, donor_residue:{gemmi_donor_residue}")
             for i, r in enumerate(c):
                 if gemmi_donor_residue.seqid.num < r.seqid.num:
                     c.add_residue(gemmi_donor_residue, i)
@@ -708,6 +708,7 @@ def generate_occupancy_restraints(merged_residues: list[dict], **kwargs) -> str:
             raise ValueError(f"Unexpected merge state encountered for {mr}")
 
         completeness_map[residue_key(ref_residue)] = complete
+        
 
     # ------------------------------------------------------------------#
     # 2. Get the (single) acceptor structure and cluster its altloc atoms.
@@ -922,7 +923,6 @@ class EnsembleMerger:
         xtal_id: str = None,
         bdc: np.float64 = 0.8,
         occupancy_kwargs: dict = {"eps": 2.5, "min_samples": 1},
-        sync_solvent=True,
         **kwargs
     ):
 
@@ -936,7 +936,7 @@ class EnsembleMerger:
         # check model, raise exception if possible mismatch detected
         self._model_precheck()
 
-        if sync_solvent:
+        if kwargs.get("sync_solvent", False):
             self._sync_solvent_labels(**kwargs)
 
         # refmac5 has issues with OXT atoms

@@ -10,13 +10,17 @@ def periodic_dist(atom1: gemmi.Atom, atom2: gemmi.Atom, cell) -> float:
 
 
 
-def map_solvent_residues(st: gemmi.Structure):
+def map_solvent_residues(st: gemmi.Structure, skip_solvent_tuples: list[tuple] = []):
     solvent_residues = {}
     for model in st:
         for chain in model:
             for res in chain:
                 if res.name == "HOH":
-                    solvent_residues[(chain.name, res.seqid.num, "HOH")] = list(res)
+                    if (chain.name, res.seqid.num, "HOH") in skip_solvent_tuples:
+                        print(f'omitting {(chain.name, res.seqid.num, "HOH")} from ensemble')
+                    else:
+                        solvent_residues[(chain.name, res.seqid.num, "HOH")] = list(res)
+
     return solvent_residues
 
 
@@ -86,13 +90,14 @@ def generate_donor_solvent_alias(
     acceptor_solvent_alias: dict,
     chain_name="S",
     threshold=2,
+    skip_solvent_tuples: list[tuple] = [],
 ):
     for model in st:
         for chain in model:
             if chain.name == chain_name:
                 raise ValueError(f"existing chain {chain_name} found in {model}")
 
-    donor_residues = map_solvent_residues(st)
+    donor_residues = map_solvent_residues(st, skip_solvent_tuples=skip_solvent_tuples)
     donor_solvent_alias = {}
     acceptor_residues_set = set(acceptor_residues.keys())
 
@@ -288,6 +293,7 @@ def check_for_nonpolymer_clashes(st: gemmi.Structure):
         "ATP",
         "UNL",
         "LIG",
+        "NCA",
     ]:
         check_for_one_atom_res_clash(st, resname)
 
@@ -299,12 +305,16 @@ def sync_solvent_labels(acceptor: gemmi.Structure, donor: gemmi.Structure, **kwa
     # relabel false solvent altlocs if they are too far apart
     relabel_false_solvent_altlocs(acceptor)
     relabel_false_solvent_altlocs(donor)
+
+    skip_acceptor_solvent_tuples = kwargs.pop("skip_solvent_tuples", [])
+    kwargs.pop("sync_solvent", None)
     
-    acceptor_solvent = map_solvent_residues(acceptor)
-    donor_solvent = map_solvent_residues(donor)
+    acceptor_solvent = map_solvent_residues(acceptor, skip_solvent_tuples=skip_acceptor_solvent_tuples)
+    donor_solvent = map_solvent_residues(donor, skip_solvent_tuples=skip_acceptor_solvent_tuples)
     acceptor_alias = generate_acceptor_solvent_alias(acceptor, acceptor_solvent)
     # information about acceptor structure is needed to relabel donor solvents
-    donor_alias = generate_donor_solvent_alias(donor, acceptor_solvent, acceptor_alias, **kwargs)
+    donor_alias = generate_donor_solvent_alias(donor, acceptor_solvent, acceptor_alias, skip_solvent_tuples=skip_acceptor_solvent_tuples, **kwargs)
+
     insert_solvent_chain(acceptor[0], acceptor_solvent, acceptor_alias)
     insert_solvent_chain(donor[0], donor_solvent, donor_alias)
     prune_solvents(acceptor)

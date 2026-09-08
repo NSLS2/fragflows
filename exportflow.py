@@ -33,6 +33,34 @@ with open(EXPORT_FILE_LIST, "r") as f:
     export_list = [line.strip() for line in f]
 
 
+def parse_skip_tuples(value: str) -> list[tuple[str, int, str]]:
+    try:
+        raw = json.loads(value)
+    except json.JSONDecodeError as e:
+        raise argparse.ArgumentTypeError(
+            f"Invalid JSON for skip tuples: {e.msg}"
+        ) from e
+
+    if not isinstance(raw, list):
+        raise argparse.ArgumentTypeError("Expected a list.")
+
+    out = []
+    for i, item in enumerate(raw):
+        if not (isinstance(item, list) and len(item) == 3):
+            raise argparse.ArgumentTypeError(
+                f"Entry {i} must be [chain, seqid, resname]."
+            )
+        chain, seqid, resname = item
+        if not isinstance(chain, str):
+            raise argparse.ArgumentTypeError(f"Entry {i}: chain must be str.")
+        if not isinstance(seqid, int):
+            raise argparse.ArgumentTypeError(f"Entry {i}: seqid must be int.")
+        if not isinstance(resname, str):
+            raise argparse.ArgumentTypeError(f"Entry {i}: resname must be str.")
+        out.append((chain, seqid, resname))
+
+    return out
+
 # Command-line argument parsing
 # -------------------------------------------------
 parser = argparse.ArgumentParser(
@@ -73,6 +101,13 @@ parser.add_argument(
     type=float,
     default=2,
     help="threshold distance which raises an exception if donor solvent altlocs are further apart than this distance in Angstroms",
+)
+
+parser.add_argument(
+    "--skip_acceptor_solvent_tuples","--skip-acceptor-solvent-tuples",
+    type=parse_skip_tuples,
+    default=[],
+    help='JSON list, e.g. [["A",1556,"HOH"],["B",902,"HOH"]]'
 )
 
 args, _unknown = parser.parse_known_args()
@@ -276,7 +311,9 @@ def merge_ensemble(dir_dict: dict, write_files=True):
             dir_dict["xtal_id"],
             bdc=args.mix_coeff,
             occupancy_kwargs={"eps": args.eps, "min_samples": 2},
+            sync_solvent=True,
             threshold=args.donor_solvent_threshold_dist,
+            skip_solvent_tuples=args.skip_acceptor_solvent_tuples,
         )
         em.run()
 
