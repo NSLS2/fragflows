@@ -278,23 +278,14 @@ def check_for_solvent_clash(st: gemmi.Structure):
 
 
 def check_for_nonpolymer_clashes(st: gemmi.Structure):
-    for resname in [
-        "Cl",
-        "K",
-        "Na",
-        "Zn",
-        "Br",
-        "Ca",
-        "Mg",
-        "DMS",
-        "GOL",
-        "SO4",
-        "PO4",
-        "ATP",
-        "UNL",
-        "LIG",
-        "NCA",
-    ]:
+    nonpolymer_resnames = {
+    residue.name
+    for model in st
+    for chain in model
+    for residue in chain
+    if residue.entity_type == gemmi.EntityType.NonPolymer
+}
+    for resname in list(nonpolymer_resnames):
         check_for_one_atom_res_clash(st, resname)
 
 
