@@ -20,7 +20,7 @@ from datetime import datetime
 import traceback
 import json
 import argparse
-
+from ligands.utils import consolidate_lig_restraints
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -170,8 +170,8 @@ for sample, dirs in dir_dict.items():
 
     event_maps = list(d.glob("*event*.ccp4"))
     average_map = list(d.glob("*average*.ccp4"))
-    ligand_files = list(d.glob("ligand_files/*.cif")) + list(
-        d.glob("ligand_files/*.pdb")
+    ligand_files = list(d.glob("ligand_files/*_[0-9][0-9].cif")) + list(
+        d.glob("ligand_files/*_[0-9][0-9].pdb")
     )
 
     # symlinks
@@ -214,8 +214,10 @@ def record_message(
 
 
 @task(name="validate", tags=["validate_job"])
-def validate(dir_dict: dict, lig_label: str='UNL'):
+def validate(dir_dict: dict):
     logger = get_run_logger()
+
+    lig_labels: set=set(['UNL'] + [str(k).zfill(2) for k in range(1,100)])
     try:
 
         print(dir_dict["ground_state"])
@@ -234,14 +236,15 @@ def validate(dir_dict: dict, lig_label: str='UNL'):
         for nc, chain in enumerate(changed[0]):
             for nr, res in enumerate(chain):
                 for na, atom in enumerate(res):
-                    if res.name != lig_label:
+                    if res.name not in lig_labels:
                         ns.add_atom(atom, nc, nr, na)
-        lig_atoms = [a for c in changed[0] for r in c for a in r if r.name == lig_label]
+        lig_atoms = [a for c in changed[0] for r in c for a in r if r.name in lig_labels]
+        if not lig_atoms:
+            raise Exception(f"No ligand atoms found for {dir_dict}")
         for atom in lig_atoms:
             neighbors = ns.find_atoms(atom.pos)
             if neighbors:
                 raise Exception(f'found clashing atoms near {atom} for {dir_dict}')
-
 
         # water clash
         sync_solvent.check_for_solvent_clash(ground)
@@ -421,6 +424,13 @@ def event_ccp4_to_mtz(dir_dict: dict):
 
     return dir_dict
 
+@task(name="combine_lig_restraints", tags=["combine_lig_restraints"])
+def combine_lig_restraints(dir_dict: dict):
+    lig_restraints_doc = consolidate_lig_restraints(dir_dict["ligand_files"])
+    lig_restraints_path = dir_dict["export_dir"] / f"{dir_dict['xtal_id']}_lig.cif"
+    lig_restraints_doc.write_file(str(lig_restraints_path))
+    return dir_dict
+
 
 
 @flow(name="export_flow", task_runner=ConcurrentTaskRunner)
@@ -435,7 +445,8 @@ def export_flow(jobs, **kwargs):
         make_dir_output = make_export_dir.map(validate_output)
         merge_output = merge_ensemble.map(make_dir_output)
         copy_output = copy_files.map(merge_output)
-        event_ccp4_to_mtz_output = event_ccp4_to_mtz.map(copy_output)
+        combine_lig_restraints_output = combine_lig_restraints.map(copy_output)
+        event_ccp4_to_mtz_output = event_ccp4_to_mtz.map(combine_lig_restraints_output)
         return event_ccp4_to_mtz_output
 
 

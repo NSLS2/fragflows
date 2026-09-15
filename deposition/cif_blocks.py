@@ -288,7 +288,7 @@ def original_mtz_to_cif_block(
 
 def dimple_mtz_to_cif_block(
     mtz_path: str,
-    spacegroup: gemmi.SpaceGroup | None=None,
+    spacegroup: gemmi.SpaceGroup=None,
     block_name: str = "xxxxsf",
     crystal_treatment: str = "?",
     diffrn_details: str = "not refined to convergence",
@@ -419,7 +419,7 @@ def prune_empty_loops(block: gemmi.cif.Block) -> gemmi.cif.Block:
             new_block.add_item(item)
     return new_block
 
-def filter_mmcif_categories(block: gemmi.cif.Block, allowed_categories: list[str], disallowed_tags: list[str] | None=None) -> gemmi.cif.Block:
+def filter_mmcif_categories(block: gemmi.cif.Block, allowed_categories: list[str], disallowed_tags: list[str]=None) -> gemmi.cif.Block:
     """remove items from a cif block that do not belong to allowed categories"""
     new_block = gemmi.cif.Block(block.name)
     for item in block:
@@ -440,7 +440,7 @@ def filter_mmcif_categories(block: gemmi.cif.Block, allowed_categories: list[str
             raise ValueError("Found CIF item that is neither pair nor loop")
     return new_block
 
-def prepare_cif_block_for_merging(block: gemmi.cif.Block, allowed_categories: list[str], disallowed_tags: list[str] | None=None) -> gemmi.cif.Block:
+def prepare_cif_block_for_merging(block: gemmi.cif.Block, allowed_categories: list[str], disallowed_tags: list[str]=None) -> gemmi.cif.Block:
     """prepare a cif block for merging by pruning empty loops and filtering categories"""
     pruned_block = prune_empty_loops(block)
     filtered_block = filter_mmcif_categories(pruned_block, allowed_categories, disallowed_tags)

@@ -66,7 +66,7 @@ def build_jobs_list(selected: Optional[set[str]])->list:
         }
 
         if ligand is not None:
-            job_dict["ligand"] = f"{ligand}.cif"
+            job_dict["ligand"] = f"{d}_lig.cif"
 
         if selected:
             if d in selected:
