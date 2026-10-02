@@ -217,7 +217,7 @@ def record_message(
 def validate(dir_dict: dict):
     logger = get_run_logger()
 
-    lig_labels: set=set(['UNL'] + [str(k).zfill(2) for k in range(1,100)])
+    lig_labels: set=set(['UNL'] + [str(k).zfill(2) for k in range(100)])
     try:
 
         print(dir_dict["ground_state"])
