@@ -19,7 +19,7 @@ def find_ligand_files(sample_dir: Path):
         yield from sample_dir.glob(pattern)
 
 
-def sync_ligands(models_dir: Path, pandda_analyse_dir: Path, dry_run: bool = False):
+def sync_ligands(models_dir: Path, pandda_analyse_dir: Path, dry_run: bool = False, datasets: str=None):
     processed_datasets_dir = pandda_analyse_dir / "processed_datasets"
     if not processed_datasets_dir.is_dir():
         raise FileNotFoundError(
@@ -31,6 +31,8 @@ def sync_ligands(models_dir: Path, pandda_analyse_dir: Path, dry_run: bool = Fal
     )
 
     for sample_name in sample_names:
+        if sample_name not in datasets.split(',') and datasets is not None:
+            continue
         model_sample_dir = models_dir / sample_name
         dataset_dir = processed_datasets_dir / sample_name
         if not dataset_dir.is_dir():
@@ -78,12 +80,18 @@ def parse_args():
         action="store_true",
         help="Print what would be done without modifying anything",
     )
+    parser.add_argument(
+        "--datasets",
+        type=str,
+        default=None,
+        help="comma separated list of dataset names to sync"
+    ) 
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    sync_ligands(args.models_dir, args.pandda_analyse_dir, dry_run=args.dry_run)
+    sync_ligands(args.models_dir, args.pandda_analyse_dir, dry_run=args.dry_run, datasets=args.datasets)
 
 
 if __name__ == "__main__":
