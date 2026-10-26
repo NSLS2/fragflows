@@ -19,7 +19,24 @@ if __name__ == "__main__":
         default="table_one.csv",
         help="Path to the output CSV file",
     )
+    parser.add_argument(
+        "--groupdep_directory",
+        type=str,
+        default=None,
+        help="Path to the groupdep directory",
+    )
+
+    parser.add_argument(
+        "--ground_model_id","--ground-model-id",
+        type=str,
+        default=None,
+        help="ID of the ground model structure factor cif",
+    )
+
     args = parser.parse_args()
+    groupdep_directory = args.groupdep_directory if args.groupdep_directory else groupdep_directory
+    ground_model_id = args.ground_model_id if args.ground_model_id else "ground-sf"
+
 
     models = []
 
@@ -34,7 +51,7 @@ if __name__ == "__main__":
             groupdep_cif = GroupDepCif(reflection_stats=rs, **payload)
             models.append(groupdep_cif)
 
-        elif file.endswith("ground-sf.cif"):
+        elif file.endswith("ground-sf.cif") or file.endswith(f"{ground_model_id}-sf.cif"):
             cif_file_path = os.path.join(groupdep_directory, file)
             for block in gemmi.cif.read_file(cif_file_path):
                 payload = cif_to_payload(block)
