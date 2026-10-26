@@ -16,6 +16,10 @@ RESNAME_TO_DESCRIPTION = {
         'NCA': {'src_method': 'nat', 'pdbx_description': "NICOTINAMIDE"},
     }
 
+RESNAME_TO_DESCRIPTION.update(
+    {str(k).zfill(2): {'src_method': 'syn', 'pdbx_description': "LIGAND"} for k in range(100)}
+    )
+
 def fix_formal_charges(func):
     """
     Phenix refine (v1.20) appears to write formal charge sign
