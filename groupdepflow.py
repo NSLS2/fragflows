@@ -15,6 +15,7 @@ from validation.cif_checks import (
     cif_loop_check,
     diffrn_id_check,
     map_ligands_to_events,
+    mixed_ligand_names,
     soaked_compound_check,
     poly_entity_check
 )
@@ -47,6 +48,7 @@ GROUP_DEP_CSV = cfg["groupdep_csv"]
 TARGET_NAME = cfg["target_name"] #fancy target name for the CIF metadata, e.g. "Cyclophilin D"
 GROUP_DEP_SPACEGROUP = cfg["spacegroup"] #spacegroup for the group deposition CIFs, e.g. "P65"
 CHUNK_SIZE = 5
+LIGAND_NAMES = {"UNL"}|{str(k).zfill(2) for k in range(100)}
 
 # load dataframes
 refinement_df = pd.read_csv(REFINEMENT_CSV)
@@ -74,8 +76,9 @@ def run_assemble_group_changed_state_cifs(only_validate: bool = False, dataset_l
         assert Path(cif_path).exists(), f"missing {cif_path}"
 
         # validation checks
-        assert has_ligand(cif_path, "UNL"), f"ligand UNL not found in {cif_path}"
-        ligand_count = count_ligands(cif_path, "UNL")
+        assert has_ligand(cif_path, LIGAND_NAMES), f"ligand UNL or '00,01,...'not found in {cif_path}"
+        assert not mixed_ligand_names(cif_path), f"mixed ligand names found in {cif_path}"
+        ligand_count = count_ligands(cif_path, LIGAND_NAMES)
         event_count = count_event_blocks(sf_cif_path)
         assert (
             event_count <= ligand_count
@@ -85,7 +88,7 @@ def run_assemble_group_changed_state_cifs(only_validate: bool = False, dataset_l
         cif_loop_check(cif_path)
         diffrn_id_check(sf_cif_path, xtal_id)
         diffrn_id_check(cif_path, xtal_id)
-        map_ligands_to_events(cif_path, sf_cif_path)
+        map_ligands_to_events(cif_path, sf_cif_path, ligand_names=LIGAND_NAMES)
         soaked_compound_check(sf_cif_path, ligand_df)
 
 
