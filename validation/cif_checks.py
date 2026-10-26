@@ -6,22 +6,39 @@ import yaml
 from collections import Counter
 
 
-def has_ligand(structure_cif: str, ligand_name: "UNL") -> bool:
+def has_ligand(structure_cif: str, ligand_names: set={"UNL"}) -> bool:
     st = gemmi.read_structure(structure_cif)
     for model in st:
         for chain in model:
             for residue in chain:
-                if residue.name == ligand_name:
+                if residue.name in ligand_names:
                     return True
     return False
 
-def count_ligands(structure_cif: str, ligand_name: "UNL") -> int:
+def mixed_ligand_names(
+        structure_cif: str,
+        ligand_names_1: set={"UNL"},
+        ligand_names_2: set={str(k).zfill(2) for k in range(100)}
+        ) -> bool:
+    st = gemmi.read_structure(structure_cif)
+    found_1 = False
+    found_2 = False
+    for model in st:
+        for chain in model:
+            for residue in chain:
+                if residue.name in ligand_names_1:
+                    found_1 = True
+                if residue.name in ligand_names_2:
+                    found_2 = True
+    return found_1 and found_2
+
+def count_ligands(structure_cif: str, ligand_names: set={"UNL"}) -> int:
     st = gemmi.read_structure(structure_cif)
     count = 0
     for model in st:
         for chain in model:
             for residue in chain:
-                if residue.name == ligand_name:
+                if residue.name in ligand_names:
                     count += 1
     return count
 
@@ -50,7 +67,7 @@ def diffrn_id_check(cif_file: str, expected_id: str):
     if not diffrn_id_found:
         raise ValueError(f"_diffrn.id not found in {cif_file}")
                 
-def map_ligands_to_events(structure_cif: str, structure_factor_cif: str, ligand_names: list[str]=["UNL"], event_block_start_idx: int = 2) -> dict[str, list[int]]:
+def map_ligands_to_events(structure_cif: str, structure_factor_cif: str, ligand_names: set={"UNL"}, event_block_start_idx: int = 2) -> dict[str, list[int]]:
     st = gemmi.read_structure(structure_cif)
     d = gemmi.cif.read_file(structure_factor_cif)
     ligands = []
