@@ -48,12 +48,11 @@ def has_refine_tags(structure_factor_cif: str) -> bool:
         "_refine.pdbx_refine_id",
     }
     keys = set()
-    for block in d[0]:
-        for item in block:
-            if item.pair:
-                keys.add(item.pair[0])
-            if item.loop:
-                keys = keys.union(item.loop.tags)
+    for item in d[0]:
+        if item.pair:
+            keys.add(item.pair[0])
+        if item.loop:
+            keys = keys.union(item.loop.tags)
     return missing_refine_tags.issubset(keys)
 
 def count_ligands(structure_cif: str, ligand_names: set={"UNL"}) -> int:
