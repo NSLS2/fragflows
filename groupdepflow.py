@@ -14,6 +14,7 @@ from validation.cif_checks import (
     count_event_blocks,
     cif_loop_check,
     diffrn_id_check,
+    has_refine_tags,
     map_ligands_to_events,
     mixed_ligand_names,
     soaked_compound_check,
@@ -83,6 +84,7 @@ def run_assemble_group_changed_state_cifs(only_validate: bool = False, dataset_l
         assert (
             event_count <= ligand_count
         ), f"more event blocks ({event_count}) than ligands ({ligand_count}) in {xtal_id}"
+        assert has_refine_tags(cif_path), f"missing refine tags in {cif_path}"
 
         poly_entity_check(cif_path)
         cif_loop_check(cif_path)

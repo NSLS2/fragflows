@@ -32,6 +32,30 @@ def mixed_ligand_names(
                     found_2 = True
     return found_1 and found_2
 
+def has_refine_tags(structure_factor_cif: str) -> bool:
+    d = gemmi.cif.read_file(structure_factor_cif)
+    missing_refine_tags = {
+        "_refine.entry_id",
+        "_refine.ls_R_factor_R_free",
+        "_refine.ls_R_factor_R_work",
+        "_refine.ls_d_res_high",
+        "_refine.ls_d_res_low",
+        "_refine.ls_number_reflns_R_free",
+        "_refine.ls_number_reflns_obs",
+        "_refine.ls_percent_reflns_obs",
+        "_refine.pdbx_ls_cross_valid_method",
+        "_refine.pdbx_method_to_determine_struct",
+        "_refine.pdbx_refine_id",
+    }
+    keys = set()
+    for block in d[0]:
+        for item in block:
+            if item.pair:
+                keys.add(item.pair[0])
+            if item.loop:
+                keys = keys.union(item.loop.tags)
+    return missing_refine_tags.issubset(keys)
+
 def count_ligands(structure_cif: str, ligand_names: set={"UNL"}) -> int:
     st = gemmi.read_structure(structure_cif)
     count = 0
