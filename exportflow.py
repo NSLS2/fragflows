@@ -110,6 +110,12 @@ parser.add_argument(
     help='JSON list, e.g. [["A",1556,"HOH"],["B",902,"HOH"]]'
 )
 
+parser.add_argument(
+    "--skip_clash_check","--skip-clash-check",
+    action="store_true",
+    help="Skip clash check during export"
+)
+
 args, _unknown = parser.parse_known_args()
 
 if args.datasets:
@@ -153,6 +159,7 @@ dir_dict = {
         / Path(f"{sample}/{sample}-{ENSEMBLE_BASENAME}.pdb"),
         "restraints": Path(EXPORT_DATA_DIRECTORY)
         / Path(f"{sample}/{sample}-{ENSEMBLE_BASENAME}.ff-refmac.params"),
+        "skip_clash_check": args.skip_clash_check,
     }
     for sample in export_list
 }
@@ -232,19 +239,20 @@ def validate(dir_dict: dict):
             raise Exception(f"Mismatching chain names between donor/acceptor states for {dir_dict}")
 
         # check for clash with placed fragments/ligands
-        ns = gemmi.NeighborSearch(changed, 2.2, 0) # within 2.2A of model 0
-        for nc, chain in enumerate(changed[0]):
-            for nr, res in enumerate(chain):
-                for na, atom in enumerate(res):
-                    if res.name not in lig_labels:
-                        ns.add_atom(atom, nc, nr, na)
-        lig_atoms = [a for c in changed[0] for r in c for a in r if r.name in lig_labels]
-        if not lig_atoms:
-            raise Exception(f"No ligand atoms found for {dir_dict}")
-        for atom in lig_atoms:
-            neighbors = ns.find_atoms(atom.pos)
-            if neighbors:
-                raise Exception(f'found clashing atoms near {atom} for {dir_dict}')
+        if dir_dict.get('skip_clash_check', False) == False:
+            ns = gemmi.NeighborSearch(changed, 2.2, 0) # within 2.2A of model 0
+            for nc, chain in enumerate(changed[0]):
+                for nr, res in enumerate(chain):
+                    for na, atom in enumerate(res):
+                        if res.name not in lig_labels:
+                            ns.add_atom(atom, nc, nr, na)
+            lig_atoms = [a for c in changed[0] for r in c for a in r if r.name in lig_labels]
+            if not lig_atoms:
+                raise Exception(f"No ligand atoms found for {dir_dict}")
+            for atom in lig_atoms:
+                neighbors = ns.find_atoms(atom.pos)
+                if neighbors:
+                    raise Exception(f'found clashing atoms near {atom} for {dir_dict}')
 
         # water clash
         sync_solvent.check_for_solvent_clash(ground)
