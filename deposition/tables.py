@@ -146,7 +146,7 @@ def generate_refinement_validation_table(
     refinement_table_csv: str,
     event_table_csv: str,
     basename: str = "ensemble",
-    ligand_name: str = "UNL",
+    ligand_name: set = {"UNL"}|{str(k).zfill(2) for k in range(100)},
 ):
     refinement_df = pd.read_csv(refinement_table_csv)
     event_df = pd.read_csv(event_table_csv)
@@ -168,7 +168,7 @@ def generate_refinement_validation_table(
             for model in st:
                 for chain in model:
                     for residue in chain:
-                        if residue.name == ligand_name:
+                        if residue.name in ligand_name:
                             real_space_mean, real_space_var, real_space_cc = (
                                 real_space_map_stats(st, rblock, residue)
                             )
