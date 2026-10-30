@@ -102,6 +102,7 @@ options:
                         if set, will only consider files with this exact space group.
   --csv CSV             if set, will save the filtered dataframe to a csv file with this name instead of the default ISO8601 timestamped name
   --no_filter           if set, will not filter the dataframe based on r_mrg and symm, and will instead return all rows in the database
+  --gather_all_samples  if set, will ignore the sample name filtter and grab every processing result file
 ```
 
 Running `gather_xray_data.py` for the first time will instantiate a SQLlite db file that contains the processed diffraction data results. We've included selection filters for applying filtering logic to select a unique "best" processing result for each xtal-id. Including the --no_filter option will dump the entire db to a csv file to facilitate plotting or more complex filtering prior to `dimpleflow` and `pandda.analyse`.
@@ -135,13 +136,14 @@ python ligandflow.py
 
 Additionally, if there are more than 500 datasets, a `max_new_datasets=` keyword argument will also need to be defined with a value greater than the total number of datasets being analyzed. We recommend running the main `pandda.analyse` run on one of our 300+ core AMD nodes.
 
-We recommend a minimum of three `pandda.analyse` runs. The first run will be to flush out any issues with the input diffraction data and to model in bonafide fragment hits with `pandda.inspect`. This first pass will allow for an estimation of the hit rate and for detection of any data pathologies such as those arising from conformational changes within the input datasets.
+We recommend a minimum of three `pandda.analyse` runs. The first run will be to flush out any issues with the input diffraction data and to model in bonafide fragment hits with `pandda.inspect`. This first pass will allow for an estimation of the hit rate and for detection of any data pathologies such as those arising from conformational changes within the input datasets. We have provided a visualization workstation with a 64 core AMD threadripper for intermediate processing jobs. If you have more than ~300 datasets let beamline staff know and we'll launch your job on one of the Epyc nodes.
 
 ### pandda.analyse (first run)
 ```bash
+ssh xf17id1-ws10
 source /nsls2/software/mx/scripts/pandda_setup.sh
 cd /nsls2/data/amx/proposals/2025-2/pass-123456/123456-mytarget-processing
-pandda.analyse output_dir="pandda_analyse_ccp4-7.0_20250618-1" pdb_style="*.dimple.pdb" max_new_datasets=1000 cpus=200 ignore_datasets="mytarget-103,mytarget-744" data_dirs="models_20241220-1/*"
+pandda.analyse output_dir="pandda_analyse_ccp4-7.0_20250618-1" pdb_style="*.dimple.pdb" max_new_datasets=1000 cpus=32 ignore_datasets="mytarget-103,mytarget-744" data_dirs="models_20241220-1/*"
 ```
 
 ### pandda.analyse (second run; mean map calculation)

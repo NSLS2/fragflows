@@ -63,6 +63,12 @@ parser.add_argument(
     help="if set, will not filter the dataframe based on r_mrg and symm, and will instead return all rows in the database"
 )
 
+parser.add_argument(
+    "--gather_all_samples","--gather-all-samples",
+    action="store_true",
+    help="if set, will gather all data regardless of sample name in config file"
+)
+
 args = parser.parse_args()
 
 # initialize database if it doesn't exist, otherwise update with new files
@@ -83,8 +89,13 @@ if args.update:
         
         xml_paths.extend(get_xml_paths(data_dir))
 
-    xml_paths = [xp for xp in xml_paths if SAMPLE_NAME in xp]
-    print(f"found {len(xml_paths)} xml files in {DATA_DIRECTORIES} matching sample name {SAMPLE_NAME}")
+    if not args.gather_all_samples:
+        xml_paths = [xp for xp in xml_paths if SAMPLE_NAME in xp]
+        print(f"found {len(xml_paths)} xml files in {DATA_DIRECTORIES} matching sample name {SAMPLE_NAME}")
+
+    else:
+        SAMPLE_NAME = 'all_samples'
+        print(f"found {len(xml_paths)} xml files in {DATA_DIRECTORIES}")
 
     for xp in xml_paths:
         print(f"found {len(xp)} xml files in {DATA_DIRECTORIES}")
