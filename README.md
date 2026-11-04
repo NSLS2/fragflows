@@ -38,17 +38,52 @@ git clone https://github.com/NSLS2/fragflows.git
 cd fragflows
 ```
 
-Activate the following conda environment.
+Fragflows uses [pixi](https://pixi.sh) to manage its Python environments. pixi is
+available on the NSLS-II computing systems at `/usr/bin/pixi`; if it is not on
+your `PATH`, see the [pixi installation docs](https://pixi.sh/latest/#installation).
+
+From the `fragflows` directory, install the two project environments (this reads
+`pixi.toml` and creates `.pixi/envs/flows` and `.pixi/envs/analysis`):
+```bash
+cd fragflows
+pixi install
+```
 
 ## Usage
 
 ### Prerequisite
 
-Fragflows requires v2.7.3 of the prefect workflow manager installed in a conda environment available in `/nsls2/software/mx/conda_envs/2023-1.0-py39`.
-Prior to running any script or workflow, activate this conda environment:
+Fragflows needs two Python stacks, defined as two pixi environments in
+`pixi.toml`:
+
+- **`flows`** — Python 3.9 with prefect 2.7.3. All prefect workflows
+  (`dimpleflow`, `ligandflow`, `exportflow`, `refineflow`) run here.
+- **`analysis`** — Python 3.11 with pydantic v2. The later data-gathering and
+  deposition scripts (`gather_xray_data.py`, `groupdepflow.py`, `table_one.py`,
+  `sf_cif_to_mtz.py`) run here.
+
+Run a command inside an environment with `pixi run -e <env> <command>`, or open
+an interactive shell with that environment active using `pixi shell -e <env>`.
+For example, to run a prefect flow:
 ```bash
-conda activate /nsls2/software/mx/conda_envs/2023-1.0-py39
+pixi run -e flows python dimpleflow.py
 ```
+
+Several flows also call external crystallography binaries (`dimple`, `acedrg`,
+`refmac5`, `phenix.refine`). As before, these come from CCP4/Phenix and are not
+managed by pixi — source the appropriate setup script in your shell *before*
+`pixi run`/`pixi shell`, so the binaries are on `PATH` for the subprocess calls
+(see the individual flow sections below). The old conda environment at
+`/nsls2/software/mx/conda_envs/2023-1.0-py39` is no longer required:
+```bash
+# (deprecated) conda activate /nsls2/software/mx/conda_envs/2023-1.0-py39
+
+```
+
+Tip: each flow below is also wired up as a pixi task, so `pixi run dimpleflow`,
+`pixi run ligandflow`, `pixi run exportflow`, `pixi run refineflow`,
+`pixi run gather-xray-data`, `pixi run groupdepflow` and `pixi run table-one`
+run the corresponding script in the correct environment without naming `-e`.
 
 ### Edit yaml configuration file
 
@@ -85,8 +120,7 @@ More recent versions of fragflows will crawl beamline data directories and searc
 
 ```bash
 cd fragflows
-conda activate /nsls2/software/mx/conda_envs/2024-2.0-py311
-python gather_xray_data.py
+pixi run -e analysis python gather_xray_data.py
 ```
 
 ```
@@ -117,7 +151,7 @@ cd 123456-mytarget-processing
 mkdir models_20250618-1
 cd fragflows
 source /nsls2/software/mx/ccp4-7.0/bin/ccp4.setup-sh
-python dimpleflow.py
+pixi run -e flows python dimpleflow.py
 ```
 The output of dimple flow is used as the input to `pandda.analyse` with the `data_dirs=` keyword argument. At this stage it is worthwhile to manually inspect several of the models with Coot or ChimeraX to verify that dimpleflow went well prior to setting up the `pandda.analyse` run.
 
@@ -127,7 +161,7 @@ The mxplate Jupyter notebook, which contains the soaking lab metadata, will outp
 To run ligandflow.py, edit the appropriate sections in the yaml config file, followed by:
 ```bash
 cd fragflows
-python ligandflow.py
+pixi run -e flows python ligandflow.py
 ```
 
 ### pandda.analyse
@@ -215,10 +249,9 @@ The following table describes all configuration parameters for the exportflow:
 | `ensemble_basename` | Ensemble models will be output with this descriptor in the filename |
 | `validate_only` | Set to `False` for a dry run; set to `True` to attempt generating ensemble models and accompanying restraint files (only after obtaining a clean validate.json report) |
 
-`exportflow` is a prefect flow, so for now you'll need to make sure the correct conda environment is active:
+`exportflow` is a prefect flow, so run it in the `flows` environment:
 ```
-conda activate /nsls2/software/mx/conda_envs/2023-1.0-py39
-python exportflow.py
+pixi run -e flows python exportflow.py
 ```
 
 There are several input options that allow you to run `exportflow` on a subset of xtal-ids in the export manifest file. You can also tune `eps` the main parameter used by DBSCAN for spatial cluster determination. Occasionally, you may need to make `eps` slightly larger.
@@ -277,7 +310,7 @@ The `exportflow` step will generate an ensemble model which contains a "crystall
 ```bash
 source /nsls2/software/mx/ccp4-9/bin/ccp4.setup-sh
 cd fragflows
-python refineflow.py
+pixi run -e flows python refineflow.py
 ```
 The refineflow will generate two mmcif files in each `pandda.export` subdirectory, one containing the refined structure factors and 2*m*Fo-*D*Fc map coefficients and the other containing the atomic coordinate model with additional blocks appended for the fragment CIF restraints used during refinement.
 
@@ -330,6 +363,10 @@ refinement_validation_table:
 ```
 
 Snippets for generating data tables, refinement validation table generation will take some time due to iterating through each event map:
+
+These snippets use the `deposition` package (pydantic v2), so run them in the
+`analysis` environment, e.g. `pixi run -e analysis python` or inside
+`pixi shell -e analysis`:
 
 ```python
 import pandas as pd

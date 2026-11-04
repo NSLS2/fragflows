@@ -1,0 +1,3 @@
+# pixi-managed environments (solved locally from pixi.toml + pixi.lock).
+# The lockfile is committed for reproducibility; the envs are not.
+.pixi/

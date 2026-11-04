@@ -10,6 +10,11 @@ from deposition.cif_blocks import convert_cif_pairs_to_loop, dimple_mtz_to_cif_b
 import json
 from deposition.utils import PathResolver, letter_generator, convert_iso_date_to_ymd
 import gemmi
+
+# Path to the gemmi command-line tool used for PDB->CIF conversion. Defaults to
+# the `gemmi` provided on PATH by the pixi `analysis` environment; override with
+# the FRAGFLOWS_GEMMI environment variable to use a specific build (e.g. CCP4's).
+GEMMI_EXE = os.environ.get("FRAGFLOWS_GEMMI", "gemmi")
 from deposition.structure import remap_entity_ids
 from deposition.cif_blocks import (
         prepare_cif_block_for_merging,
@@ -471,7 +476,7 @@ def convert_pdb_to_cif_block(pdb_path: str) -> gemmi.cif.Block:
     try:
         cif_path = pdb_path.replace(".pdb", ".cif")
         subprocess.run(
-            ["/nsls2/software/mx/ccp4-9/bin/gemmi","convert", os.path.basename(pdb_path), os.path.basename(cif_path)],
+            [GEMMI_EXE, "convert", os.path.basename(pdb_path), os.path.basename(cif_path)],
             check=True, cwd=os.path.dirname(pdb_path)
         )
         return gemmi.cif.read_file(cif_path).sole_block()
