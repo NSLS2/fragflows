@@ -1,4 +1,4 @@
-#!/nsls2/conda/envs/2023-1.1-py39/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu Aug 17 09:00:15 2023

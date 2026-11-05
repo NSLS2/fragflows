@@ -1,10 +1,18 @@
 import gc
 from chimerax.core.commands import run as cx
 import sys
+import os
+import glob
 
-sys.path.append(
-    "/nsls2/software/mx/conda_envs/2024-2.0-py311/lib/python3.11/site-packages"
-)
+# This script runs inside ChimeraX's own Python interpreter. It borrows the
+# pixi `analysis` environment's site-packages (gemmi, numpy, PIL, yaml) which
+# pixi creates under <repo>/.pixi/envs/analysis. Run `pixi install -e analysis`
+# once so this directory exists.
+_repo_dir = os.path.dirname(os.path.abspath(__file__))
+for _sp in glob.glob(
+    os.path.join(_repo_dir, ".pixi", "envs", "analysis", "lib", "python3.*", "site-packages")
+):
+    sys.path.append(_sp)
 import argparse
 import gemmi
 import tempfile

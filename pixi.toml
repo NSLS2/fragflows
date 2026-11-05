@@ -1,0 +1,86 @@
+[workspace]
+name = "fragflows"
+version = "0.1.0"
+description = "Processing flows for X-ray crystallographic fragment screening at NSLS-II"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# This project needs two incompatible Python stacks:
+#   * the prefect workflows require prefect 2.7.3, which pins Python 3.9 / pydantic<2
+#   * the later deposition/analysis scripts use Python 3.11 and pydantic>=2
+# pixi solves each environment independently, so each feature pins its own
+# Python. Keep [dependencies] empty: anything placed there is shared by every
+# environment and would force a single, conflicting Python version.
+[dependencies]
+
+# ---------------------------------------------------------------------------
+# flows: Python 3.9 + prefect 2.7.3 (dimpleflow, ligandflow, exportflow,
+# refineflow, groupdep_changed_state_flow)
+# ---------------------------------------------------------------------------
+[feature.flows.dependencies]
+python = "3.9.*"
+prefect = "2.7.3.*"
+# prefect 2.7.3 imports apprise.plugins.NotifyOpsgenie, which newer apprise
+# (>=1.9) removed; 1.1.0 is what the original conda env shipped.
+apprise = "1.1.*"
+# prefect 2.7.3 predates these libraries' breaking API changes. conda-forge's
+# prefect metadata has loose bounds, so the solver otherwise pulls versions that
+# fail at import. Pin to the majors the original conda env used.
+anyio = "3.*"
+pendulum = "2.*"
+griffe = "0.21.*"
+# prefect 2.7.3's OrionClient passes app= to httpx.AsyncClient, a shortcut
+# removed in httpx 0.28.
+httpx = "<0.28"
+# prefect 2.7.3's orion API uses the legacy sa.select([Model, col, ...]) list
+# syntax, removed in SQLAlchemy 2.0.
+sqlalchemy = "1.4.*"
+pydantic = "<2"
+pandas = "1.5.*"
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
+# 0.7.0 switched gemmi's Python bindings from pybind11 to nanobind, which
+# prints reference-leak warnings at interpreter shutdown; 0.6.7 is the last
+# pybind11-based release.
+gemmi = "0.6.7.*"
+rdkit = "*"
+pyyaml = "*"
+
+[feature.flows.tasks]
+# ccp4.setup-sh exports its own PYTHONPATH, shadowing the pixi-pinned
+# httpx/anyio prefect needs; unset it before invoking the pixi python.
+dimpleflow = "bash -c 'source /nsls2/software/mx/ccp4-7.0/bin/ccp4.setup-sh && export LD_PRELOAD=/usr/lib64/libfreetype.so && python dimpleflow.py'"
+ligandflow = "bash -c 'source /nsls2/software/mx/ccp4-7.0/bin/ccp4.setup-sh && export LD_PRELOAD=/usr/lib64/libfreetype.so && python ligandflow.py \"$@\"' --"
+exportflow = "python exportflow.py"
+refineflow = "bash -c 'source /nsls2/software/mx/ccp4-9/bin/setup.sh && python refineflow.py \"$@\"' --"
+groupdepflow = "python groupdepflow.py"
+
+# ---------------------------------------------------------------------------
+# analysis: Python 3.11 + pydantic>=2 (gather_xray_data, groupdepflow,
+# table_one, sf_cif_to_mtz, sync_ligands)
+# ---------------------------------------------------------------------------
+[feature.analysis.dependencies]
+python = "3.11.*"
+pydantic = ">=2"
+pandas = "*"
+numpy = "*"
+gemmi = "*"
+pyyaml = "*"
+xmltodict = "*"
+h5py = "*"
+lxml = "*"
+pytz = "*"
+sqlalchemy = "*"
+# pillow (PIL) is used by chimerax_images.py, which borrows this env's
+# site-packages from inside ChimeraX.
+pillow = "*"
+
+[feature.analysis.tasks]
+gather-xray-data = "python gather_xray_data.py"
+groupdepflow = "python groupdepflow.py"
+table-one = "python table_one.py"
+
+[environments]
+flows = ["flows"]
+analysis = ["analysis"]
