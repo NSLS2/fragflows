@@ -120,7 +120,7 @@ More recent versions of fragflows will crawl beamline data directories and searc
 
 ```bash
 cd fragflows
-pixi run -e analysis python gather_xray_data.py
+pixi run gather-xray-data
 ```
 
 ```
@@ -162,7 +162,7 @@ The mxplate Jupyter notebook, which contains the soaking lab metadata, will outp
 To run ligandflow.py, edit the appropriate sections in the yaml config file, followed by:
 ```bash
 cd fragflows
-pixi run -e flows python ligandflow.py
+pixi run ligandflow
 ```
 
 ### pandda.analyse
@@ -253,7 +253,7 @@ The following table describes all configuration parameters for the exportflow:
 
 `exportflow` is a prefect flow, so run it in the `flows` environment:
 ```
-pixi run -e flows python exportflow.py
+pixi run exportflow
 ```
 
 There are several input options that allow you to run `exportflow` on a subset of xtal-ids in the export manifest file. You can also tune `eps` the main parameter used by DBSCAN for spatial cluster determination. Occasionally, you may need to make `eps` slightly larger.
@@ -300,7 +300,7 @@ The `exportflow` step will generate an ensemble model which contains a "crystall
 ```bash
 source /nsls2/software/mx/ccp4-9/bin/ccp4.setup-sh
 cd fragflows
-pixi run -e flows python refineflow.py
+pixi run refineflow
 ```
 The refineflow will generate two mmcif files in each `pandda.export` subdirectory, one containing the refined structure factors and 2*m*Fo-*D*Fc map coefficients and the other containing the atomic coordinate model with additional blocks appended for the fragment CIF restraints used during refinement.
 

@@ -54,7 +54,6 @@ dimpleflow = "bash -c 'source /nsls2/software/mx/ccp4-7.0/bin/ccp4.setup-sh && e
 ligandflow = "bash -c 'source /nsls2/software/mx/ccp4-7.0/bin/ccp4.setup-sh && export LD_PRELOAD=/usr/lib64/libfreetype.so && python ligandflow.py \"$@\"' --"
 exportflow = "python exportflow.py"
 refineflow = "bash -c 'source /nsls2/software/mx/ccp4-9/bin/setup.sh && python refineflow.py \"$@\"' --"
-groupdepflow = "python groupdepflow.py"
 
 # ---------------------------------------------------------------------------
 # analysis: Python 3.11 + pydantic>=2 (gather_xray_data, groupdepflow,
