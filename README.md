@@ -189,7 +189,7 @@ pandda.analyse output_dir="pandda_analyse_ccp4-7.0_20250618-2" pdb_style="*.dimp
 The resulting mean map will be placed as a ccp4 map file in the `reference/statistical_maps` subdirectory in the main analyse directory. A symlink to a high resolution reference model will be placed in `reference`. The map and the reference model will have different frames of reference, so the model will need to be docked into the map. If possible this docking can be achieved manually with chimerax or a robust automated docking protocol can be run with `phenix.dock_in_map`. At NSLS-II this can be achieved with the following commands assuming that you are already in the main analyse directory created with this second average map run:
 
 ```bash
-source source /nsls2/software/mx/phenix-1.20.1-4487/phenix_env.sh
+source /nsls2/software/mx/phenix-1.20.1-4487/phenix_env.sh
 cd reference/statistical_maps
 phenix.dock_in_map ../reference.pdb <mean map ccp4 file> crystal_info.resolution=d_min
 ```
@@ -281,19 +281,7 @@ In fragflows `exportflow` we have re-implemented the PanDDA-v1 (PV1) algorithm f
 
 Some facilities use PV1 ensembles, whereas others deposit only the changed or bound state. PV1 ensembles, which are basically composite models comprised of weighted averages of changed states (from pandda.inspect) and ground states (from dimple), attempt to approximate partial occupancy binding events in a crystallographically sensible way. There are arguments to be made for either approach, but here at NSLS-II we have opted to use PV1 ensembles for the time being.
 
-The subtelty lies in the defining what exactly is the ground state. In the PV1 approach, we assume that there is a single representative ground state model with which we phase and autorefine all of the individual diffraction datasets. The resultant ground state model assigned to each diffraction dataset will be unique due to the initial phase/refine run, but this model will not capture large conformational changes or loop rearrangements. The true ground state model is likely a sample from a distribution of possible models, but for practical reasons we will approximate this ideal model with a representative or average model of this distribution. A potentially more accurate model might use something similar to the following Bayesian network graph.
-
-```
- A,B,C
-   │
-   ▼
-Ground ─────► Binding
-   │             │
-   └────┬────────┘
-        ▼
-     Changed
-```
-$P(Changed,Ground,Binding,A,B,C)=P(Changed|Ground,Binding)P(Ground|A,B,C)P(Binding|Ground)P(A,B,C)$
+The subtelty lies in the defining what exactly is the ground state. In the PV1 approach, we assume that there is a single representative ground state model with which we phase and autorefine all of the individual diffraction datasets. The resultant ground state model assigned to each diffraction dataset will be unique due to the initial phase/refine run, but this model will not capture large conformational changes or loop rearrangements. The true ground state model is likely a sample from a distribution of possible models, but for practical reasons we will approximate this ideal model with a representative or average model of this distribution. A potentially more accurate model might look something like a Bayesian network graph.
 
 Upon first encounter the PV1 ensemble-generation algorithm can be perplexing, but after further inspection it is really quite simple. PV1 applies the algorithm at the residue level, but the logic can readily be extended to individual atoms (or any discrete chemical entity).
 
