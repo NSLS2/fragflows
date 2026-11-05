@@ -29,20 +29,32 @@ apprise = "1.1.*"
 anyio = "3.*"
 pendulum = "2.*"
 griffe = "0.21.*"
+# prefect 2.7.3's OrionClient passes app= to httpx.AsyncClient, a shortcut
+# removed in httpx 0.28.
+httpx = "<0.28"
+# prefect 2.7.3's orion API uses the legacy sa.select([Model, col, ...]) list
+# syntax, removed in SQLAlchemy 2.0.
+sqlalchemy = "1.4.*"
 pydantic = "<2"
 pandas = "1.5.*"
 numpy = "*"
 scipy = "*"
 scikit-learn = "*"
-gemmi = "*"
+# 0.7.0 switched gemmi's Python bindings from pybind11 to nanobind, which
+# prints reference-leak warnings at interpreter shutdown; 0.6.7 is the last
+# pybind11-based release.
+gemmi = "0.6.7.*"
 rdkit = "*"
 pyyaml = "*"
 
 [feature.flows.tasks]
-dimpleflow = "python dimpleflow.py"
-ligandflow = "python ligandflow.py"
+# ccp4.setup-sh exports its own PYTHONPATH, shadowing the pixi-pinned
+# httpx/anyio prefect needs; unset it before invoking the pixi python.
+dimpleflow = "bash -c 'source /nsls2/software/mx/ccp4-7.0/bin/ccp4.setup-sh && export LD_PRELOAD=/usr/lib64/libfreetype.so && python dimpleflow.py'"
+ligandflow = "bash -c 'source /nsls2/software/mx/ccp4-7.0/bin/ccp4.setup-sh && export LD_PRELOAD=/usr/lib64/libfreetype.so && python ligandflow.py \"$@\"' --"
 exportflow = "python exportflow.py"
-refineflow = "python refineflow.py"
+refineflow = "bash -c 'source /nsls2/software/mx/ccp4-9/bin/setup.sh && python refineflow.py \"$@\"' --"
+groupdepflow = "python groupdepflow.py"
 
 # ---------------------------------------------------------------------------
 # analysis: Python 3.11 + pydantic>=2 (gather_xray_data, groupdepflow,
