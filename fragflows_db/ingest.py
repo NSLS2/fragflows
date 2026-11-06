@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from lxml import etree
 from deposition import load
@@ -48,8 +49,20 @@ def ingest_mx_processing_path(session, filepath: str):
     if not hdf5_path.exists():
         raise Exception(f"HDF5 file {hdf5_path} does not exist for XML file {filepath}")
     hdf5_path = str(hdf5_path)
-    xtal_name = Path(mx_processing_dict['AutoProcContainer.AutoProcScalingContainer.AutoProcIntegrationContainer.Image.fileLocation']).parts[-3]
 
+    if Path(filepath).parts[3] in ['amx','fmx']:
+        xtal_name = Path(mx_processing_dict['AutoProcContainer.AutoProcScalingContainer.AutoProcIntegrationContainer.Image.fileLocation']).parts[-3]
+
+    elif Path(filepath).parts[3] == 'nyx':
+        xtal_name_match = re.match(r'^[A-Za-z0-9]+-\d+', hdf5_filename)
+        if xtal_name_match is None:
+            raise ValueError(f'could not parse xtal name from hdf5 filename {hdf5_filename}')
+        xtal_name = xtal_name_match.group(0)
+
+    else:
+        raise ValueError(f'unknown filepath config for {filepath}, do not know how to parse sample name')
+
+    
     xtal = get_or_create_xtal(session, xtal_name)
     hdf5_file = get_or_create_hdf5_file(session, xtal, hdf5_path, hdf5_filename)
     mx_processing_result = get_or_create_mx_processing_result(
