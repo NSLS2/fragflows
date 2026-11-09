@@ -298,7 +298,6 @@ Here `exportflow` will apply the aforementioned procedure to generate altloc lab
 The `exportflow` step will generate an ensemble model which contains a "crystallographically correct" composition of the *ground state* model output by dimple and the *changed state* model resulting from editing the refined dimple model to be consistent with the corresponding event map. Included with each ensemble model is a set of occupancy group and position restraints specific for each structure. Currently, Refmac is our preferred macromolecular refinement program for properly handling these special partial occupancy restraints. To run the refineflow activate ccp4-9 and edit the relevant sections of the yaml configuration file. The `basename` and `basename_hkl` keys are used to identify the ensemble structure and measured amplitudes used for refinement respectively.
 
 ```bash
-source /nsls2/software/mx/ccp4-9/bin/ccp4.setup-sh
 cd fragflows
 pixi run refineflow
 ```
