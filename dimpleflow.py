@@ -14,6 +14,7 @@ from pathlib import Path
 import pandas
 import multiprocessing
 import yaml
+import argparse
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -27,6 +28,7 @@ FILTERED_XRAY_CSV = config["dimpleflow"]["filtered_xray_csv"]
 
 jobs_df = pandas.read_csv(FILTERED_XRAY_CSV)
 jobs_list = []
+
 
 if 'mtz_path' in jobs_df.columns:
     xtal_key = 'xtal_name'
@@ -76,11 +78,31 @@ def dimple_flow(jobs, **kwargs):
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Dimple flow script")
+    parser.add_argument(
+        "--n_cpus",
+        "--n-cpus",
+        type=int,
+        default=None,
+        help="Number of CPUs to use"
+        )
+    args = parser.parse_args()
     n_cpus = multiprocessing.cpu_count()
-    if n_cpus < 30:
+    
+    if args.n_cpus is not None:
+        n_cpus = args.n_cpus
         n_chunks = n_cpus
     else:
-        n_chunks = 30
+        if n_cpus < 30:
+            n_chunks = n_cpus
+        else:
+            n_chunks = 30
+
+    if n_cpus <= 0:
+        raise ValueError("Number of CPUs must be greater than 0")
+    
+
 
     job_chunks = [
         jobs_list[i : i + n_chunks] for i in range(0, len(jobs_list), n_chunks)
