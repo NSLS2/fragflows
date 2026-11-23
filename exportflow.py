@@ -249,9 +249,19 @@ def validate(dir_dict: dict):
             lig_atoms = [a for c in changed[0] for r in c for a in r if r.name in lig_labels]
             if not lig_atoms:
                 raise Exception(f"No ligand atoms found for {dir_dict}")
+            coordination_ions = [gemmi.Element('ZN')]
             for atom in lig_atoms:
                 neighbors = ns.find_atoms(atom.pos)
-                if neighbors:
+                clashes = [
+                    neighbor
+                    for neighbor in neighbors
+                    if ns.dist(atom.pos, neighbor.pos) < (
+                        1.9
+                        if atom.element in coordination_ions or neighbor.element in coordination_ions
+                        else 2.2
+                    )
+                ]
+                if clashes:
                     raise Exception(f'found clashing atoms near {atom} for {dir_dict}')
 
         # water clash
