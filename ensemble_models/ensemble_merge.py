@@ -939,22 +939,6 @@ class EnsembleMerger:
         if kwargs.get("sync_solvent", False):
             self._sync_solvent_labels(**kwargs)
 
-        # refmac5 has issues with OXT atoms
-        for model in self.acceptor:
-            for chain in model:
-                for residue in chain:
-                    for i in range(len(residue)-1,-1,-1):
-                        if residue[i].name == "OXT":
-                                del residue[i]
-
-
-        for model in self.donor:
-            for chain in model:
-                for residue in chain:
-                    for i in range(len(residue)-1,-1,-1):
-                        if residue[i].name == "OXT":
-                                del residue[i]
-
         # ensure entity poly type defined
         self.acceptor.setup_entities()
         self.donor.setup_entities()
