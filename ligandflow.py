@@ -24,6 +24,20 @@ args.add_argument(
     default=None,
     help="comma separated list of xtal_ids to process"
 )
+args.add_argument(
+    "--exclude_datasets",
+    "--exclude-datasets",
+    type=str,
+    default=None,
+    help="comma separated list of xtal_ids to exclude"
+)
+args.add_argument(
+    "--max_n_stereoisomers",
+    "--max-n-stereoisomers",
+    type=int,
+    default=16,
+    help="Maximum number of stereoisomers to consider"
+)
 
 with open("config.yaml", "r") as yaml_file:
     config = yaml.safe_load(yaml_file)
@@ -71,7 +85,7 @@ def generate_acedrg_params(sample_dict: dict):
 @task(name="run_acedrg", tags=["acedrg_job"])
 def run_acedrg(acedrg_params: dict, sample_path: Path):
     stereo_isomers = enumerate_stereo_from_smiles(acedrg_params["smiles"])
-    if len(stereo_isomers) > 16:
+    if len(stereo_isomers) > parsed_args.max_n_stereoisomers:
         raise ValueError(f"Too many stereoisomers for SMILES: {acedrg_params['smiles']}", acedrg_params)
 
     isomer_count = 0
@@ -104,12 +118,36 @@ def acedrg_flow(samples: list, **kwargs):
 
 
 if __name__ == "__main__":
-    parsed_args = args.parse_args()
+    parser = argparse.ArgumentParser(description="Ligand flow script")
+    parser.add_argument(
+        "--datasets",
+        type=str,
+        default=None,
+        help="comma separated list of xtal_ids to include"
+    )
+    parser.add_argument(
+        "--exclude_datasets",
+        "--exclude-datasets",
+        type=str,
+        default=None,
+        help="comma separated list of xtal_ids to exclude"
+    )
+    parser.add_argument(
+        "--max_n_stereoisomers",
+        "--max-n-stereoisomers",
+        type=int,
+        default=16,
+        help="Maximum number of stereoisomers to consider"
+    )
+    parsed_args = parser.parse_args()
 
     ligand_df = pd.read_csv(LIGAND_CSV)
     if parsed_args.datasets:
         dataset_list = [d.strip() for d in parsed_args.datasets.split(",") if d.strip()]
         ligand_df = ligand_df[ligand_df["xtal_id"].isin(dataset_list)]
+    if parsed_args.exclude_datasets:
+        exclude_list = [d.strip() for d in parsed_args.exclude_datasets.split(",") if d.strip()]
+        ligand_df = ligand_df[~ligand_df["xtal_id"].isin(exclude_list)]
 
     samples = ligand_df.to_dict("records")
 
