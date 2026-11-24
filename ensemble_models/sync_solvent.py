@@ -299,16 +299,31 @@ def sync_solvent_labels(acceptor: gemmi.Structure, donor: gemmi.Structure, **kwa
 
     skip_acceptor_solvent_tuples = kwargs.pop("skip_solvent_tuples", [])
     kwargs.pop("sync_solvent", None)
-    
+    ensemble_solvent_chain_name = kwargs.pop("solvent_chain_name", None)
+    if ensemble_solvent_chain_name is None:
+        ensemble_solvent_chain_name = "S"
+
     acceptor_solvent = map_solvent_residues(acceptor, skip_solvent_tuples=skip_acceptor_solvent_tuples)
     donor_solvent = map_solvent_residues(donor, skip_solvent_tuples=skip_acceptor_solvent_tuples)
-    acceptor_alias = generate_acceptor_solvent_alias(acceptor, acceptor_solvent)
-    # information about acceptor structure is needed to relabel donor solvents
-    donor_alias = generate_donor_solvent_alias(donor, acceptor_solvent, acceptor_alias, skip_solvent_tuples=skip_acceptor_solvent_tuples, **kwargs)
+    acceptor_alias = generate_acceptor_solvent_alias(
+                        acceptor,
+                        acceptor_solvent,
+                        chain_name=ensemble_solvent_chain_name
+                    )
 
-    insert_solvent_chain(acceptor[0], acceptor_solvent, acceptor_alias)
-    insert_solvent_chain(donor[0], donor_solvent, donor_alias)
-    prune_solvents(acceptor)
-    prune_solvents(donor)
+    # information about acceptor structure is needed to relabel donor solvents
+    donor_alias = generate_donor_solvent_alias(
+                        donor,
+                        acceptor_solvent,
+                        acceptor_alias,
+                        skip_solvent_tuples=skip_acceptor_solvent_tuples,
+                        chain_name=ensemble_solvent_chain_name,
+                        **kwargs
+                    )
+
+    insert_solvent_chain(acceptor[0], acceptor_solvent, acceptor_alias, chain_name=ensemble_solvent_chain_name)
+    insert_solvent_chain(donor[0], donor_solvent, donor_alias, chain_name=ensemble_solvent_chain_name)
+    prune_solvents(acceptor, chains_to_keep=[ensemble_solvent_chain_name])
+    prune_solvents(donor, chains_to_keep=[ensemble_solvent_chain_name])
     check_for_solvent_clash(acceptor)
     check_for_solvent_clash(donor)

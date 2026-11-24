@@ -116,6 +116,13 @@ parser.add_argument(
     help="Skip clash check during export"
 )
 
+parser.add_argument(
+    "--solvent_chain_name", "--solvent-chain-name",
+    type=str,
+    default="",
+    help="Name of the ensemble model solvent chain"
+)
+
 args, _unknown = parser.parse_known_args()
 
 if args.datasets:
@@ -335,6 +342,7 @@ def merge_ensemble(dir_dict: dict, write_files=True):
             sync_solvent=True,
             threshold=args.donor_solvent_threshold_dist,
             skip_solvent_tuples=args.skip_acceptor_solvent_tuples,
+            solvent_chain_name=args.solvent_chain_name,
         )
         em.run()
 
