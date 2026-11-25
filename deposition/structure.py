@@ -14,6 +14,7 @@ RESNAME_TO_DESCRIPTION = {
         'GOL': {'src_method': 'syn', 'pdbx_description': "GLYCEROL"},
         'PO4': {'src_method': 'syn', 'pdbx_description': "\"PHOSPHATE ION\""},
         'NCA': {'src_method': 'nat', 'pdbx_description': "NICOTINAMIDE"},
+        'ZN': {'src_method': 'syn', 'pdbx_description': "\"ZINC ION\""},
     }
 
 RESNAME_TO_DESCRIPTION.update(
