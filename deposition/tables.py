@@ -14,6 +14,7 @@ def generate_refinement_table(
     ligand_csv: str,
     basename: str = "refine",
     basename_hkl: str = "reflections",
+    xtal_id_key: str = "xtal_name"
 ):
     """Loop through the pandda.export directory and build a table containing filepaths for refined
     structure and corresponding reflection cifs. Ligand information is included for each crystal,
@@ -26,7 +27,7 @@ def generate_refinement_table(
     # the most recently modified reflection/structure cif file is considered to be the final file
     # the input ensemble model used for refinement is collected to perform a validation check later
 
-    for d in [d for d in os.listdir(export_dir) if d in dataset_df["xtal_id"].values]:
+    for d in [d for d in os.listdir(export_dir) if d in dataset_df[xtal_id_key].values]:
         data_dir = Path(Path(export_dir) / Path(d))
         if not data_dir.is_dir():
             continue
@@ -59,23 +60,23 @@ def generate_refinement_table(
                     (str(f) for f in refine_cifs if basename_hkl in f.name), None
                 ),
                 "reflection_data_file": dataset_df.loc[
-                    dataset_df["xtal_id"] == d, "filepath"
+                    dataset_df[xtal_id_key] == d, "mtz_path"
                 ].iloc[0],
                 "smiles": ligand_df.loc[ligand_df["xtal_id"] == d, "smiles"].iloc[0],
                 "catalog_id": ligand_df.loc[ligand_df["xtal_id"] == d, "catalog_id"].iloc[
                     0
                 ],
                 "xml_path": dataset_df.loc[
-                    dataset_df["xtal_id"] == d, "xml_path"
+                    dataset_df[xtal_id_key] == d, "xml_path"
                 ].iloc[0],
                 "data_collection_date": dataset_df.loc[
-                    dataset_df["xtal_id"] == d, "data_collection_date"
+                    dataset_df[xtal_id_key] == d, "data_collection_date"
                 ].iloc[0],
                 "wavelength": dataset_df.loc[
-                    dataset_df["xtal_id"] == d, "wavelength"
+                    dataset_df[xtal_id_key] == d, "wavelength"
                 ].iloc[0],
                 "det_serial_no": dataset_df.loc[
-                    dataset_df["xtal_id"] == d, "det_serial_no"
+                    dataset_df[xtal_id_key] == d, "det_serial_no"
                 ].iloc[0],
             }
             result_list.append(result_dict)
