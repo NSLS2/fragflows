@@ -608,7 +608,7 @@ def cluster_altloc_atoms(st: gemmi.Structure, **kwargs):
     # 1. Define symmetry-aware distance function
     # -------------------------------------------------------------------
     def periodic_dist(atom1: gemmi.Atom, atom2: gemmi.Atom) -> float:
-        nearest = st.cell.find_nearest_pbc_image(atom1.pos, atom2.pos)
+        nearest = st.cell.find_nearest_image(atom1.pos, atom2.pos, gemmi.Asu.Any)
         return nearest.dist()
 
     # -------------------------------------------------------------------
@@ -753,7 +753,7 @@ def generate_occupancy_restraints(merged_residues: list[dict], **kwargs) -> str:
             donor_altlocs |= set().union(*aa.values()) if aa else set()
 
     def periodic_dist(atom1: gemmi.Atom, atom2: gemmi.Atom, cell) -> float:
-        nearest = cell.find_nearest_pbc_image(atom1.pos, atom2.pos)
+        nearest = cell.find_nearest_image(atom1.pos, atom2.pos, gemmi.Asu.Any)
         return nearest.dist()
 
     for cluster_label, atom_set in atom_clusters.items():

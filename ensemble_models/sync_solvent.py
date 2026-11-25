@@ -4,7 +4,7 @@ import string
 
 
 def periodic_dist(atom1: gemmi.Atom, atom2: gemmi.Atom, cell) -> float:
-    nearest = cell.find_nearest_pbc_image(atom1.pos, atom2.pos)
+    nearest = cell.find_nearest_image(atom1.pos, atom2.pos, gemmi.Asu.Any)
     return nearest.dist()
 
 
